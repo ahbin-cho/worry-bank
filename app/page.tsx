@@ -17,7 +17,7 @@ export default function Page() {
             <img
               src="/images/staff/teller.png"
               alt=""
-              className="h-full w-full object-contain mix-blend-multiply"
+              className="h-full w-full object-contain"
             />
           </div>
         </header>
