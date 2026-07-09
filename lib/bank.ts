@@ -25,13 +25,73 @@ export const CATEGORY_MAP = CATEGORIES.reduce(
 );
 
 // ── 은행 직원 (창구 세계관 유지) ──────────────────────────
-export type Staff = { key: string; name: string; emoji: string; role: string };
-export const BANK_STAFF: Record<string, Staff> = {
-  teller: { key: "teller", name: "창구직원 ‘또박’", emoji: "💁", role: "걱정 접수·응대" },
-  writeoff: { key: "writeoff", name: "정리 담당 ‘탕감’", emoji: "🔥", role: "걱정 소각" },
-  security: { key: "security", name: "보안요원 ‘철벽’", emoji: "💂", role: "금고 지킴이" },
-  manager: { key: "manager", name: "지점장 ‘든든’", emoji: "🧑‍💼", role: "하루 마감 총평" },
-  elf: { key: "elf", name: "이자요정 ‘불어’", emoji: "🧚", role: "묵힌 걱정 이자 경고" },
+export type StaffKey =
+  | "manager"
+  | "teller"
+  | "elf"
+  | "jar"
+  | "loan"
+  | "writeoff"
+  | "security";
+
+export type Staff = {
+  key: StaffKey;
+  name: string;
+  shortName: string;
+  role: string;
+  tone: string;
+};
+
+export const BANK_STAFF: Record<StaffKey, Staff> = {
+  manager: {
+    key: "manager",
+    name: "지점장 ‘든든’",
+    shortName: "든든",
+    role: "흐름 분석",
+    tone: "큰 그림을 보고 정리해주는 침착한 총괄",
+  },
+  teller: {
+    key: "teller",
+    name: "창구직원 ‘또박’",
+    shortName: "또박",
+    role: "걱정 접수",
+    tone: "먼저 들어주고 문장으로 정돈해주는 상담 창구",
+  },
+  elf: {
+    key: "elf",
+    name: "이자요정 ‘불어’",
+    shortName: "불어",
+    role: "반추 감지",
+    tone: "걱정이 커지는 순간을 콕 집어 알려주는 경보 담당",
+  },
+  jar: {
+    key: "jar",
+    name: "적금통 ‘차곡’",
+    shortName: "차곡",
+    role: "미래 불안 적립",
+    tone: "작은 실행을 하루치로 쪼개주는 계획 담당",
+  },
+  loan: {
+    key: "loan",
+    name: "대출심사 ‘갚어’",
+    shortName: "갚어",
+    role: "마음의 빚 심사",
+    tone: "책임과 내 몫이 아닌 것을 구분하는 엄격한 심사역",
+  },
+  writeoff: {
+    key: "writeoff",
+    name: "부실채권 정리 ‘탕감’",
+    shortName: "탕감",
+    role: "통제 불가 걱정 소각",
+    tone: "못 갚을 걱정을 시원하게 정리하는 탕감 담당",
+  },
+  security: {
+    key: "security",
+    name: "보안요원 ‘일호’",
+    shortName: "일호",
+    role: "회피 감시",
+    tone: "맡겨둔 걱정을 조용히 지키는 금고 담당",
+  },
 };
 
 // ── 저장 모델 ──────────────────────────────────────────────
@@ -87,6 +147,21 @@ function hash(str: string): number {
   let h = 0;
   for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 100000;
   return h;
+}
+
+export function pickStaffForWorry(
+  worry: Worry,
+  countToday = 0
+): StaffKey {
+  const pools: Record<Category, StaffKey[]> = {
+    money: ["loan", "manager", "jar", "teller"],
+    relationship: ["teller", "loan", "manager", "writeoff"],
+    future: ["jar", "manager", "elf", "teller"],
+    health: ["manager", "teller", "security", "elf"],
+    etc: ["teller", "manager", "writeoff", "security", "elf"],
+  };
+  const pool = pools[worry.category];
+  return pool[hash(`${worry.text}-${countToday}`) % pool.length];
 }
 
 // ── 창구직원 또박의 접수 응대(따뜻한 인정·위로) ───────────
@@ -166,6 +241,37 @@ const NUDGES = [
   "한결 나으셨길. 비우실지 맡기실지 편하게 골라주세요.",
 ];
 
+const STAFF_NUDGES: Record<StaffKey, string[]> = {
+  manager: [
+    "잔고보다 흐름을 볼게요. 지금 할 수 있는 것과 지나가게 둘 것을 나누면 됩니다.",
+    "이 걱정은 전부 갚는 문제라기보다, 흐름을 다시 잡는 문제에 가까워요.",
+  ],
+  teller: [
+    "먼저 잘 접수해둘게요. 비우거나 맡기는 건 천천히 정하셔도 됩니다.",
+    "문장이 된 걱정은 이미 조금 가벼워져요. 여기까지 가져온 것부터 처리된 겁니다.",
+  ],
+  elf: [
+    "이자는 생각을 오래 돌릴수록 붙어요. 오늘은 원금만 남기고 과장된 이자는 떼어볼게요.",
+    "방금 걱정이 몸집을 키우려 했어요. 제가 증식 구간에 빨간 밑줄 쳐둘게요.",
+  ],
+  jar: [
+    "미래 걱정은 한 번에 갚지 말고, 오늘치 한 칸만 채우면 됩니다.",
+    "먼 미래 잔고는 오늘 전부 계산하지 않아도 돼요. 작게 쪼개서 적립해둘게요.",
+  ],
+  loan: [
+    "이건 당신 몫의 책임과 남의 몫이 섞여 있어요. 갚을 부분만 남기고 나머지는 보류하겠습니다.",
+    "상환 능력부터 보겠습니다. 오늘 갚을 수 없는 죄책감은 연체로 잡지 않을게요.",
+  ],
+  writeoff: [
+    "통제 밖에 있는 부분은 부실채권으로 분류해도 됩니다. 전부 안고 있지 않아도 돼요.",
+    "이 걱정은 오래 들고 있어도 수익이 없네요. 태워 비울 후보로 올려둘게요.",
+  ],
+  security: [
+    "금고에 맡겨도 사라지는 척하는 게 아니에요. 잠시 보이지 않게 보관하는 겁니다.",
+    "지금은 지켜두는 것도 방법이에요. 필요할 때 다시 꺼낼 수 있게 잠가둘게요.",
+  ],
+};
+
 export type TellerReplyContext = {
   /** 오늘 이미 접수한 걱정 수(응답 톤 조절용, API 붙일 때 프롬프트 컨텍스트로도 사용) */
   countToday?: number;
@@ -176,6 +282,17 @@ export function ruleBasedReply(worry: Worry): string {
   const ack = tellerAck(worry);
   const nudge = NUDGES[hash(worry.text + worry.id) % NUDGES.length];
   return `${ack} ${nudge}`;
+}
+
+export function staffReply(
+  worry: Worry,
+  staffKey: StaffKey,
+  ctx: TellerReplyContext = {}
+): string {
+  const ack = tellerAck(worry);
+  const pool = STAFF_NUDGES[staffKey];
+  const line = pool[hash(`${worry.text}-${staffKey}-${ctx.countToday ?? 0}`) % pool.length];
+  return `${ack} ${line}`;
 }
 
 /** LLM에 넘길 또박 페르소나 시스템 프롬프트 (서버 /api/teller에서 사용) */

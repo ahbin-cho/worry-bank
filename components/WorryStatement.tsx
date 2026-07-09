@@ -5,12 +5,36 @@ import {
   SQUESTIONS,
   SCATEGORY_META,
   DISTORTION_META,
-  STAFF_FULL,
   buildStatement,
   type SOption,
 } from "@/lib/statement";
 
 type Phase = "intro" | "quiz" | "result";
+type StaffKey = "manager" | "teller" | "elf" | "jar" | "loan" | "writeoff" | "security";
+
+const STAFF_IMAGE: Record<StaffKey, string> = {
+  manager: "/images/staff/manager.png",
+  teller: "/images/staff/teller.png",
+  elf: "/images/staff/elf.png",
+  jar: "/images/staff/jar.png",
+  loan: "/images/staff/loan.png",
+  writeoff: "/images/staff/writeoff.png",
+  security: "/images/staff/security.png",
+};
+
+function Character({ staff, className = "" }: { staff: StaffKey; className?: string }) {
+  return (
+    <img
+      src={STAFF_IMAGE[staff]}
+      alt=""
+      className={`object-contain mix-blend-multiply ${className}`}
+    />
+  );
+}
+
+function money(n: number) {
+  return `${n.toLocaleString()}원`;
+}
 
 export default function WorryStatement() {
   const [phase, setPhase] = useState<Phase>("intro");
@@ -36,353 +60,261 @@ export default function WorryStatement() {
     setAnswers([]);
   };
 
-  /* ── 인트로 ── */
   if (phase === "intro") {
     return (
-      <div className="animate-fade-in-up rounded-3xl bg-white/90 p-7 text-center shadow-xl ring-1 ring-black/5 sm:p-9">
-        <p className="text-5xl">🎫</p>
-        <h2 className="mt-4 text-xl font-extrabold text-slate-900">
-          걱정 은행에 오신 것을 환영합니다
-        </h2>
-        <p className="mt-2 text-[15px] leading-relaxed text-slate-500">
-          번호표를 뽑고 10개 질문에 답하면, 오늘의{" "}
-          <b className="text-slate-700">걱정 명세서</b>와 함께 은행 직원들이
-          상환 플랜을 짜 드려요.
-        </p>
-        <button
-          onClick={() => {
-            setPhase("quiz");
-            setStep(0);
-            setAnswers([]);
-          }}
-          className="mt-7 w-full rounded-2xl bg-slate-900 px-6 py-4 text-base font-bold text-white shadow-md transition hover:bg-slate-800 active:scale-[0.99]"
-        >
-          번호표 뽑기
-        </button>
-      </div>
+      <section className="overflow-hidden rounded-[14px] bg-[#fff3df] shadow-[0_14px_36px_rgba(33,26,15,0.10)]">
+        <div className="px-5 pb-5 pt-4">
+          <div className="flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-800">
+                Ticket Desk
+              </p>
+              <h2 className="mt-1 text-[24px] font-semibold leading-tight text-slate-950">
+                번호표 뽑고<br />걱정 명세서 받기
+              </h2>
+            </div>
+            <Character staff="teller" className="h-28 w-28 shrink-0" />
+          </div>
+          <p className="mt-4 text-[13px] leading-relaxed text-slate-600">
+            10개 질문으로 원금, 이자, 만기, 상환 가능성을 계산해서 오늘 바로 볼 수 있는 명세서로 정리해요.
+          </p>
+          <button
+            onClick={() => {
+              setPhase("quiz");
+              setStep(0);
+              setAnswers([]);
+            }}
+            className="mt-5 w-full rounded-[14px] bg-slate-950 px-5 py-3.5 text-[14px] font-semibold text-white shadow-sm active:scale-[0.99]"
+          >
+            번호표 뽑기
+          </button>
+        </div>
+      </section>
     );
   }
 
-  /* ── 질문 ── */
   if (phase === "quiz") {
     const q = SQUESTIONS[step];
-    const progress = Math.round((step / SQUESTIONS.length) * 100);
+    const progress = Math.round(((step + 1) / SQUESTIONS.length) * 100);
+
     return (
-      <div className="animate-fade-in-up rounded-3xl bg-white/90 p-6 shadow-xl ring-1 ring-black/5 sm:p-8">
-        <div className="mb-6">
-          <div className="mb-2 flex items-center justify-between text-sm font-semibold text-slate-500">
-            <span>
-              {step + 1} / {SQUESTIONS.length}
-            </span>
-            <span>{progress}%</span>
+      <section className="overflow-hidden rounded-[14px] bg-[#fff3df] shadow-[0_14px_36px_rgba(33,26,15,0.10)]">
+        <div className="px-5 py-4">
+          <div className="flex items-start gap-3">
+            <Character
+              staff={step < 3 ? "teller" : step < 6 ? "manager" : step < 8 ? "elf" : "writeoff"}
+              className="h-20 w-20 shrink-0"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-semibold text-emerald-800">
+                질문 {step + 1} / {SQUESTIONS.length}
+              </p>
+              <h2 className="mt-1 text-[20px] font-semibold leading-tight text-slate-950">
+                {q.prompt}
+              </h2>
+            </div>
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-black/5">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-slate-800 to-[#d4a574] transition-all duration-500"
-              style={{ width: `${Math.max(progress, 6)}%` }}
+              className="h-full rounded-full bg-slate-950 transition-all duration-500"
+              style={{ width: `${progress}%` }}
             />
           </div>
         </div>
-        <h2 className="text-xl font-extrabold leading-snug text-slate-900 sm:text-2xl">
-          <span className="mr-2">{q.emoji}</span>
-          {q.prompt}
-        </h2>
-        <div className="mt-6 grid gap-3">
+
+        <div className="space-y-2 px-4 pb-4">
           {q.options.map((opt, i) => (
             <button
               key={i}
               onClick={() => choose(opt)}
-              className="flex items-center gap-3 rounded-2xl border-2 border-slate-100 bg-white px-5 py-4 text-left text-[15px] font-semibold text-slate-800 transition hover:-translate-y-0.5 hover:border-[#d4a574] hover:shadow-md"
+              className="flex w-full items-center gap-3 rounded-[14px] bg-white/75 px-4 py-3.5 text-left text-[14px] font-medium leading-snug text-slate-800 shadow-[0_4px_12px_rgba(33,26,15,0.05)] active:scale-[0.99]"
             >
-              {opt.label}
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-[#f2e4cd] text-[12px] font-semibold text-slate-500">
+                {i + 1}
+              </span>
+              <span>{opt.label.replace(/^[^\s]+\s/, "")}</span>
             </button>
           ))}
-        </div>
-        {step > 0 && (
           <button
-            onClick={() => setStep(step - 1)}
-            className="mt-6 text-sm font-semibold text-slate-400 hover:text-slate-600"
+            onClick={() => setStep(Math.max(0, step - 1))}
+            disabled={step === 0}
+            className="px-2 pt-2 text-[12px] font-medium text-slate-400 disabled:opacity-30"
           >
-            ← 이전 질문
+            이전
           </button>
-        )}
-      </div>
+        </div>
+      </section>
     );
   }
 
-  /* ── 결과: 명세서 ── */
   if (!result) return null;
+
   const cat = SCATEGORY_META[result.category];
-  const today = new Date().toLocaleDateString("ko-KR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const status =
+    result.badLoans >= 2 || result.gap >= 10
+      ? "정리 필요"
+      : result.todayInterest >= 60
+        ? "이자 주의"
+        : "관리 가능";
 
   return (
-    <div className="animate-pop-in overflow-hidden rounded-3xl bg-white shadow-xl ring-1 ring-black/5">
-      {/* 1층: 계좌 요약 헤더 */}
-      <div className="bg-gradient-to-br from-[#1e293b] to-[#334155] px-7 py-7 text-white">
-        <p className="text-center text-sm font-semibold tracking-widest text-white/60">
-          걱정은행 · 오늘의 명세서
-        </p>
-        <p className="mt-1 text-center text-xs text-white/40">{today}</p>
-        <div className="mt-5 grid grid-cols-3 gap-2 text-center">
+    <section className="overflow-hidden rounded-[14px] bg-[#fff3df] shadow-[0_14px_36px_rgba(33,26,15,0.10)]">
+      <div className="px-5 pb-4 pt-4">
+        <div className="flex items-end justify-between gap-3">
           <div>
-            <p className="text-[11px] text-white/50">총 걱정 잔고</p>
-            <p className="text-2xl font-black tabular-nums">
-              {result.balance.toLocaleString()}
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-800">
+              오늘의 걱정 명세서
             </p>
+            <h2 className="mt-1 text-[22px] font-semibold leading-tight text-slate-950">
+              {cat.label} 걱정은<br />{status} 상태예요
+            </h2>
           </div>
-          <div>
-            <p className="text-[11px] text-white/50">오늘의 이자</p>
-            <p className="text-2xl font-black tabular-nums text-[#d4a574]">
-              +{result.todayInterest}
-            </p>
-          </div>
-          <div>
-            <p className="text-[11px] text-white/50">부실채권</p>
-            <p className="text-2xl font-black tabular-nums text-rose-400">
-              {result.badLoans}건
-            </p>
-          </div>
+          <Character
+            staff={result.badLoans >= 2 ? "writeoff" : result.loanAmt > 120 ? "loan" : result.savingsAmt > 170 ? "jar" : "manager"}
+            className="h-28 w-28 shrink-0"
+          />
         </div>
       </div>
 
-      <div className="space-y-5 p-6 sm:p-7">
-        {/* 2층: 최고 이자 걱정 */}
-        <div
-          className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm ring-1 ring-black/5"
-          style={{ borderLeft: "4px solid #d4a574" }}
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-800">최고 이자 걱정</h3>
-            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-600">
-              {cat.emoji} {cat.label}
-            </span>
-          </div>
-          <p className="mt-2 text-[15px] font-bold text-slate-900">
-            《{result.worryText}》
-          </p>
-          <div className="mt-3 flex items-center gap-2 text-sm text-slate-500">
-            <span className="tabular-nums">원금 {result.principal}</span>
-            <span className="text-slate-300">→</span>
-            <span className="font-black tabular-nums text-rose-600">
-              현재 {result.current} ({result.multiplier}배)
-            </span>
-          </div>
-          <div className="mt-3">
-            <div className="mb-1 flex justify-between text-xs font-bold text-slate-400">
-              <span>실현 확률</span>
-              <span className="text-slate-600">{result.probability}%</span>
+      <div className="grid grid-cols-3 gap-2 px-4 pb-4">
+        <Summary label="잔고" value={money(result.balance)} />
+        <Summary label="이자" value={`+${money(result.todayInterest)}`} tone="rose" />
+        <Summary label="상환" value={`${result.repaidThisWeek}건`} tone="emerald" />
+      </div>
+
+      <div className="space-y-3 bg-[#f6ead6] px-4 py-4">
+        <section className="rounded-[12px] bg-[#fff3df] p-4 shadow-[0_6px_18px_rgba(33,26,15,0.06)]">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-medium text-slate-400">최고 이자 걱정</p>
+              <p className="mt-1 text-[17px] font-semibold leading-snug text-slate-950">
+                “{result.worryText}”
+              </p>
             </div>
-            <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">
+              {status}
+            </span>
+          </div>
+
+          <div className="mt-4 rounded-[14px] bg-[#f2e4cd] px-3 py-3">
+            <div className="flex justify-between text-[12px] text-slate-500">
+              <span>원금</span>
+              <span className="font-semibold text-slate-900">{money(result.principal)}</span>
+            </div>
+            <div className="my-2 h-1.5 rounded-full bg-white">
               <div
-                className={`h-full rounded-full ${
-                  result.probability <= 20
-                    ? "bg-emerald-500"
-                    : result.probability <= 60
-                      ? "bg-amber-500"
-                      : "bg-rose-500"
-                }`}
-                style={{ width: `${result.probability}%` }}
+                className="h-full rounded-full bg-rose-400"
+                style={{ width: `${Math.min(100, result.multiplier * 34)}%` }}
               />
             </div>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full bg-slate-50 px-2.5 py-1 font-bold text-slate-500 ring-1 ring-slate-200">
-              반추 비용 {result.ruminationCost.toLocaleString()}
-            </span>
-            <span className="rounded-full bg-slate-50 px-2.5 py-1 font-bold text-slate-500 ring-1 ring-slate-200">
-              통제 {result.controlLabel}
-            </span>
-            {result.gap > 0 && (
-              <span className="rounded-full bg-rose-50 px-2.5 py-1 font-bold text-rose-600 ring-1 ring-rose-200">
-                과잉 걱정 지수 {result.gap}
+            <div className="flex items-end justify-between">
+              <span className="text-[12px] text-slate-500">현재 잔고</span>
+              <span className="text-[18px] font-semibold text-rose-600">
+                {money(result.current)} <span className="text-[11px]">({result.multiplier}배)</span>
               </span>
-            )}
-          </div>
-          {/* 이자요정 불어 말풍선 */}
-          <div className="relative mt-4 rounded-xl bg-slate-50 px-4 py-3">
-            <div className="absolute -top-2 left-4 h-0 w-0 border-x-[6px] border-b-[8px] border-x-transparent border-b-slate-50" />
-            <p className="text-xs text-slate-500">
-              <span className="font-bold text-slate-700">
-                {STAFF_FULL.elf.emoji} {STAFF_FULL.elf.name}
-              </span>{" "}
-              &ldquo;{result.interestElf}&rdquo;
-            </p>
-          </div>
-        </div>
-
-        {/* 3층: 직원별 걱정 자산 분류 */}
-        <div>
-          <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
-            걱정 자산 분류
-          </h3>
-          <div className="grid grid-cols-2 gap-3">
-            <StaffCard
-              emoji={STAFF_FULL.savings.emoji}
-              name={STAFF_FULL.savings.name}
-              role="미래 불안 적립"
-              value={result.savingsAmt}
-            />
-            <StaffCard
-              emoji={STAFF_FULL.loan.emoji}
-              name={STAFF_FULL.loan.name}
-              role="마음의 빚"
-              value={result.loanAmt}
-            />
-            <StaffCard
-              emoji={STAFF_FULL.writeoff.emoji}
-              name={STAFF_FULL.writeoff.name}
-              role="소각 대상"
-              value={result.badloanAmt}
-              extra={`${result.badLoans}건`}
-            />
-            <StaffCard
-              emoji="🏦"
-              name="예금"
-              role="예치된 걱정"
-              value={result.depositAmt}
-            />
-          </div>
-          <div className="mt-3 flex items-center justify-between rounded-xl bg-slate-50 px-4 py-2.5 text-xs">
-            <span className="font-bold text-slate-400">만기</span>
-            <span className="font-bold text-slate-700">
-              {result.maturityLabel}
-            </span>
-          </div>
-        </div>
-
-        {/* 보안요원 철벽 경고 */}
-        {result.avoidance && (
-          <div className="rounded-2xl border-l-4 border-rose-400 bg-white p-4 shadow-sm ring-1 ring-black/5">
-            <h3 className="mb-1 text-sm font-bold text-rose-600">
-              {STAFF_FULL.security.emoji} {STAFF_FULL.security.name}
-            </h3>
-            <p className="text-[14px] leading-relaxed text-slate-600">
-              &ldquo;{STAFF_FULL.security.line}&rdquo; 회피한 걱정은 사라진 게
-              아니라 이자만 붙은 채 예치돼 있어요.
-            </p>
-          </div>
-        )}
-
-        {/* 4층: 사고 패턴 진단 */}
-        <div className="rounded-2xl border-l-4 border-slate-800 bg-white p-5 shadow-sm ring-1 ring-black/5">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-slate-800">사고 패턴 진단</h3>
-            <span className="rounded-full bg-slate-800 px-3 py-0.5 text-xs font-bold text-white">
-              {DISTORTION_META[result.distortion].label}
-            </span>
-          </div>
-          <p className="mt-3 text-[14px] leading-relaxed text-slate-600">
-            {DISTORTION_META[result.distortion].def}
-          </p>
-          <div className="mt-3 rounded-xl bg-[#faf8f5] px-4 py-3">
-            <p className="text-[14px] font-semibold text-slate-700">
-              💬 {DISTORTION_META[result.distortion].reframe}
-            </p>
-          </div>
-        </div>
-
-        {/* 5층: 지점장 든든 총평 */}
-        <div
-          className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5"
-          style={{ borderTop: "3px solid #d4a574" }}
-        >
-          <div className="flex items-center gap-2">
-            <span className="text-lg">{STAFF_FULL.manager.emoji}</span>
-            <div>
-              <p className="text-sm font-bold text-slate-800">
-                {STAFF_FULL.manager.name}
-              </p>
-              <p className="text-[11px] text-slate-400">총평</p>
             </div>
           </div>
-          <p className="mt-3 text-[15px] leading-relaxed text-slate-700">
-            {result.managerVerdict}
-          </p>
-        </div>
 
-        {/* 5층: 또박 상환 플랜 (4단계 타임라인) */}
-        <div>
-          <div className="mb-3 flex items-center gap-2">
-            <span className="text-lg">{STAFF_FULL.teller.emoji}</span>
-            <h3 className="text-sm font-bold text-slate-800">
-              {STAFF_FULL.teller.name}의 상환 플랜
-            </h3>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <Small label="실현 확률" value={`${result.probability}%`} />
+            <Small label="통제 가능성" value={result.controlLabel} />
           </div>
-          <div className="relative ml-3 border-l-2 border-slate-200 pl-6">
-            {result.plan.map((s, i) => (
-              <div
-                key={i}
-                className={`relative ${i === result.plan.length - 1 ? "pb-0" : "pb-5"}`}
-              >
-                <div className="absolute -left-[31px] flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-white">
-                  {i + 1}
-                </div>
-                <p className="text-sm font-bold text-slate-800">
-                  {s.title.replace(/^[①②③④]\s*/, "")}
+        </section>
+
+        <Talk name="이자요정 불어" text={result.interestElf} />
+        <Talk name="지점장 든든" text={result.managerVerdict} />
+
+        <section className="rounded-[12px] bg-[#fff3df] p-4 shadow-[0_6px_18px_rgba(33,26,15,0.06)]">
+          <div className="mb-2 flex items-baseline justify-between">
+            <h3 className="text-[16px] font-semibold text-slate-950">자산 분류</h3>
+            <span className="text-[11px] text-slate-400">어디에 쌓였는지</span>
+          </div>
+          <Asset label="미래 불안 적금" value={result.savingsAmt} />
+          <Asset label="마음의 빚 대출" value={result.loanAmt} />
+          <Asset label="부실채권 후보" value={result.badloanAmt} note={`${result.badLoans}건`} />
+          <Asset label="일반 예치 걱정" value={result.depositAmt} />
+        </section>
+
+        <section className="rounded-[12px] bg-[#fff3df] p-4 shadow-[0_6px_18px_rgba(33,26,15,0.06)]">
+          <p className="text-[11px] font-medium text-slate-400">사고 패턴 진단</p>
+          <h3 className="mt-1 text-[17px] font-semibold text-slate-950">
+            {DISTORTION_META[result.distortion].label}
+          </h3>
+          <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
+            {DISTORTION_META[result.distortion].def}
+          </p>
+          <p className="mt-3 rounded-[12px] bg-emerald-50 px-3 py-2 text-[13px] font-medium leading-relaxed text-emerald-900">
+            {DISTORTION_META[result.distortion].reframe}
+          </p>
+        </section>
+
+        <section className="rounded-[12px] bg-[#fff3df] p-4 shadow-[0_6px_18px_rgba(33,26,15,0.06)]">
+          <p className="text-[11px] font-medium text-slate-400">또박의 상환 플랜</p>
+          <h3 className="mt-1 text-[17px] font-semibold text-slate-950">
+            오늘 할 수 있는 순서
+          </h3>
+          <div className="mt-3 space-y-2">
+            {result.plan.map((item, i) => (
+              <div key={item.title} className="rounded-[12px] bg-[#f2e4cd] px-3 py-3">
+                <p className="text-[13px] font-semibold text-slate-950">
+                  {i + 1}. {item.title.replace(/^[①②③④]\s*/, "")}
                 </p>
-                <p className="mt-1 text-[14px] leading-relaxed text-slate-600">
-                  {s.detail}
-                </p>
+                <p className="mt-1 text-[12px] leading-relaxed text-slate-600">{item.detail}</p>
               </div>
             ))}
           </div>
-        </div>
-
-        {/* 6층: 이번 주 상환 + 다시 진단 */}
-        <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-5 py-4 ring-1 ring-slate-100">
-          <span className="text-sm font-bold text-emerald-700">
-            이번 주 상환 완료
-          </span>
-          <span className="text-lg font-black text-emerald-700">
-            {result.repaidThisWeek}건
-          </span>
-        </div>
+        </section>
 
         <button
           onClick={reset}
-          className="w-full rounded-2xl bg-slate-900 px-6 py-3.5 text-base font-bold text-white shadow-md transition hover:bg-slate-800 active:scale-[0.99]"
+          className="w-full rounded-[14px] bg-slate-950 px-5 py-3.5 text-[14px] font-semibold text-white shadow-sm active:scale-[0.99]"
         >
-          다시 진단하기
+          다시 번호표 뽑기
         </button>
-        <p className="text-center text-[11px] leading-relaxed text-slate-400">
-          ※ 인지행동치료(CBT) 기법을 참고한 셀프케어 도구이며, 전문 심리·의료
-          상담을 대체하지 않습니다.
+        <p className="px-2 text-center text-[10px] leading-relaxed text-slate-400">
+          CBT 기법을 참고한 셀프케어 도구이며, 전문 상담을 대체하지 않습니다.
         </p>
       </div>
+    </section>
+  );
+}
+
+function Summary({ label, value, tone = "slate" }: { label: string; value: string; tone?: "slate" | "rose" | "emerald" }) {
+  const color = tone === "rose" ? "text-rose-600" : tone === "emerald" ? "text-emerald-700" : "text-slate-950";
+  return (
+    <div className="rounded-[14px] bg-white/75 px-2 py-3 text-center shadow-[0_4px_12px_rgba(33,26,15,0.05)]">
+      <p className="text-[10px] text-slate-400">{label}</p>
+      <p className={`mt-1 truncate text-[13px] font-semibold tabular-nums ${color}`}>{value}</p>
     </div>
   );
 }
 
-function StaffCard({
-  emoji,
-  name,
-  role,
-  value,
-  extra,
-}: {
-  emoji: string;
-  name: string;
-  role: string;
-  value: number;
-  extra?: string;
-}) {
+function Small({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-100">
-      <p className="text-lg">{emoji}</p>
-      <p className="mt-1 text-xs font-bold text-slate-700">{name}</p>
-      <p className="text-[11px] text-slate-400">{role}</p>
-      <p className="mt-2 text-lg font-black tabular-nums text-slate-800">
-        {extra && (
-          <span className="mr-1 text-xs font-bold text-slate-400">
-            {extra}
-          </span>
-        )}
-        {value.toLocaleString()}
-      </p>
+    <div className="rounded-[12px] bg-white/60 px-3 py-2.5">
+      <p className="text-[10px] text-slate-400">{label}</p>
+      <p className="mt-1 text-[13px] font-semibold text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+function Talk({ name, text }: { name: string; text: string }) {
+  return (
+    <div className="rounded-[12px] bg-[#fff3df] p-4 shadow-[0_6px_18px_rgba(33,26,15,0.06)]">
+      <p className="text-[12px] font-semibold text-slate-950">{name}</p>
+      <p className="mt-1 text-[13px] leading-relaxed text-slate-600">“{text}”</p>
+    </div>
+  );
+}
+
+function Asset({ label, value, note }: { label: string; value: number; note?: string }) {
+  return (
+    <div className="flex items-center justify-between border-t border-black/5 py-3 first:border-t-0 first:pt-1 last:pb-0">
+      <div>
+        <p className="text-[13px] font-medium text-slate-900">{label}</p>
+        {note && <p className="text-[11px] text-rose-500">{note}</p>}
+      </div>
+      <p className="text-[14px] font-semibold tabular-nums text-slate-950">{money(value)}</p>
     </div>
   );
 }

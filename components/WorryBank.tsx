@@ -9,7 +9,8 @@ import {
   saveWorries,
   clearWorries,
   todayISO,
-  getTellerReply,
+  pickStaffForWorry,
+  staffReply,
   burnLine,
   keepLine,
   reframeLine,
@@ -17,16 +18,44 @@ import {
   type Worry,
   type Category,
   type Likelihood,
+  type StaffKey,
 } from "@/lib/bank";
 
 type Feed =
   | { kind: "user"; id: string; text: string; category: Category }
-  | { kind: "teller"; id: string; text: string }
-  | { kind: "security"; id: string; text: string }
+  | { kind: "staff"; id: string; text: string; staffKey: StaffKey }
   | { kind: "worry"; id: string; worryId: string };
 
 const TELLER = BANK_STAFF.teller;
 const SECURITY = BANK_STAFF.security;
+
+const STAFF_IMAGE: Record<StaffKey, string> = {
+  manager: "/images/staff/manager.png",
+  teller: "/images/staff/teller.png",
+  elf: "/images/staff/elf.png",
+  jar: "/images/staff/jar.png",
+  loan: "/images/staff/loan.png",
+  writeoff: "/images/staff/writeoff.png",
+  security: "/images/staff/security.png",
+};
+
+function StaffAvatar({
+  staffKey,
+  size = "md",
+}: {
+  staffKey: StaffKey;
+  size?: "sm" | "md" | "lg";
+}) {
+  const box = size === "lg" ? "h-20 w-20" : size === "sm" ? "h-12 w-12" : "h-14 w-14";
+
+  return (
+    <img
+      src={STAFF_IMAGE[staffKey]}
+      alt=""
+      className={`${box} shrink-0 object-contain mix-blend-multiply`}
+    />
+  );
+}
 
 // "무슨 말을 해야 할지 모를 때" 눌러서 시작하는 예시 걱정
 const SUGGESTIONS: { cat: Category; text: string }[] = [
@@ -63,16 +92,18 @@ export default function WorryBank() {
     const kept = w.filter((x) => x.status === "kept").length;
     const greet: Feed[] = [
       {
-        kind: "teller",
+        kind: "staff",
         id: nid(),
+        staffKey: "teller",
         text: "어서 오세요. 저는 창구직원 또박이에요. 오늘은 어떤 걱정을 들고 오셨어요? 숫자도, 이유도 필요 없어요. 그냥 편하게 적어주세요.",
       },
     ];
     if (kept > 0)
       greet.push({
-        kind: "security",
+        kind: "staff",
         id: nid(),
-        text: `${SECURITY.emoji} 지난번 금고에 맡기신 걱정 ${kept}건, 제가 잘 지키고 있었어요.`,
+        staffKey: "security",
+        text: `지난번 금고에 맡기신 걱정 ${kept}건, 제가 잘 지키고 있었어요.`,
       });
     setFeed(greet);
     setMounted(true);
@@ -112,15 +143,15 @@ export default function WorryBank() {
     setText("");
     setTyping(true);
 
-    // [API 이음새] 지금은 규칙 기반 getTellerReply. 딜레이는 사람이 받아적는 느낌.
     const countToday = next.filter(
       (w) => w.createdAt.slice(0, 10) === today
     ).length;
-    const reply = await getTellerReply(worry, { countToday });
+    const staffKey = pickStaffForWorry(worry, countToday);
+    const reply = staffReply(worry, staffKey, { countToday });
     window.setTimeout(() => {
       setFeed((f) => [
         ...f,
-        { kind: "teller", id: nid(), text: reply },
+        { kind: "staff", id: nid(), text: reply, staffKey },
         { kind: "worry", id: nid(), worryId: worry.id },
       ]);
       setTyping(false);
@@ -136,7 +167,7 @@ export default function WorryBank() {
     setReframeFor(null);
     setFeed((f) => [
       ...f,
-      { kind: "teller", id: nid(), text: `${BANK_STAFF.writeoff.emoji} ${burnLine(worryId)}` },
+      { kind: "staff", id: nid(), staffKey: "writeoff", text: burnLine(worryId) },
     ]);
   };
 
@@ -149,13 +180,13 @@ export default function WorryBank() {
     setReframeFor(null);
     setFeed((f) => [
       ...f,
-      { kind: "security", id: nid(), text: `${SECURITY.emoji} ${keepLine(worryId)}` },
+      { kind: "staff", id: nid(), staffKey: "security", text: keepLine(worryId) },
     ]);
   };
 
   const pickLikelihood = (worryId: string, lk: Likelihood) => {
     setReframeFor(null);
-    setFeed((f) => [...f, { kind: "teller", id: nid(), text: reframeLine(lk) }]);
+    setFeed((f) => [...f, { kind: "staff", id: nid(), staffKey: "manager", text: reframeLine(lk) }]);
   };
 
   const reset = () => {
@@ -165,8 +196,9 @@ export default function WorryBank() {
     idRef.current = 0;
     setFeed([
       {
-        kind: "teller",
+        kind: "staff",
         id: "f0",
+        staffKey: "teller",
         text: "새로 시작해요. 어떤 걱정이든 편하게 꺼내놓으세요.",
       },
     ]);
@@ -174,7 +206,7 @@ export default function WorryBank() {
 
   if (!mounted) {
     return (
-      <div className="rounded-[28px] bg-[#fffaf2] p-10 text-center shadow-lg ring-1 ring-black/5">
+      <div className="rounded-[18px] bg-[#fff3df] p-10 text-center shadow-lg ">
         <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-emerald-100 border-t-emerald-500" />
         <p className="mt-4 text-sm font-semibold text-slate-400">창구를 여는 중...</p>
       </div>
@@ -182,42 +214,46 @@ export default function WorryBank() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-136px)] min-h-[560px] max-h-[720px] flex-col overflow-hidden rounded-[28px] bg-[#fffaf2] shadow-lg ring-1 ring-black/5">
+    <div className="flex h-[calc(100dvh-136px)] min-h-[560px] max-h-[720px] flex-col overflow-hidden rounded-[18px] bg-[#fff3df] shadow-lg ">
       {/* 페르소나 헤더 */}
-      <div className="border-b border-[#eadfce] bg-[#fff7e8] px-4 py-3">
+      <div className="border-b border-[#eadfce] bg-[#fff3df] px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className="h-12 w-16 shrink-0 overflow-hidden rounded-2xl bg-white ring-1 ring-black/5">
-            <img
-              src="/images/worry-bank-characters.png"
-              alt=""
-              className="h-full w-full object-cover object-[35%_58%]"
-            />
-          </div>
+          <StaffAvatar staffKey="teller" size="lg" />
           <div className="min-w-0 flex-1">
-            <p className="text-[15px] font-semibold leading-tight text-slate-950 [font-family:var(--font-display)]">{TELLER.name}</p>
+            <p className="text-[15px] font-semibold leading-tight text-slate-950 [font-family:var(--font-display)]">걱정 접수팀</p>
             <p className="mt-0.5 text-[11px] leading-snug text-slate-500">
-              편하게 적어주세요. 걱정은 여기서 분류해둘게요.
+              또박이 받고, 담당 직원이 이어서 정리해드려요.
             </p>
           </div>
         </div>
+        <div className="mt-3 flex gap-1.5 overflow-hidden">
+          {(["teller", "manager", "jar", "loan", "writeoff", "security"] as StaffKey[]).map((key) => (
+            <span
+              key={key}
+              className="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-slate-500 "
+            >
+              {BANK_STAFF[key].shortName}
+            </span>
+          ))}
+        </div>
         <div className="mt-2 grid grid-cols-2 gap-2">
-          <span className="rounded-2xl bg-white px-3 py-1.5 text-center text-[11px] font-bold text-rose-600 ring-1 ring-black/5">
+          <span className="rounded-[14px] bg-white px-3 py-1.5 text-center text-[11px] font-bold text-rose-600 ">
             오늘 비움 {burnedToday}
           </span>
-          <span className="rounded-2xl bg-white px-3 py-1.5 text-center text-[11px] font-bold text-emerald-700 ring-1 ring-black/5">
+          <span className="rounded-[14px] bg-white px-3 py-1.5 text-center text-[11px] font-bold text-emerald-700 ">
             금고 보관 {keptCount}
           </span>
         </div>
       </div>
 
       {/* 대화 피드 */}
-      <div className="flex-1 space-y-3 overflow-y-auto bg-[#f8f2e8] px-3 py-4">
+      <div className="flex-1 space-y-3 overflow-y-auto bg-[#f6ead6] px-3 py-4">
         {feed.map((item) => {
           if (item.kind === "user") {
             const c = CATEGORY_MAP[item.category];
             return (
               <div key={item.id} className="flex justify-end">
-                <div className="max-w-[82%] rounded-2xl rounded-br-md bg-slate-900 px-4 py-2.5 text-[14px] leading-relaxed text-white shadow-sm">
+                <div className="max-w-[82%] rounded-[14px] rounded-br-md bg-slate-900 px-4 py-2.5 text-[14px] leading-relaxed text-white shadow-sm">
                   {item.category !== "etc" && (
                     <span className="mr-1 opacity-80">
                       {c.emoji}
@@ -228,21 +264,17 @@ export default function WorryBank() {
               </div>
             );
           }
-          if (item.kind === "teller" || item.kind === "security") {
-            const who = item.kind === "teller" ? TELLER : SECURITY;
+          if (item.kind === "staff") {
+            const who = BANK_STAFF[item.staffKey];
             return (
               <div key={item.id} className="flex items-end gap-2">
-                <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-black/5">
-                  <img
-                    src="/images/worry-bank-characters.png"
-                    alt=""
-                    className={`h-full w-full object-cover ${
-                      item.kind === "teller" ? "object-[35%_58%]" : "object-[92%_58%]"
-                    }`}
-                  />
-                </div>
-                <div className="max-w-[82%] rounded-2xl rounded-bl-md bg-white px-4 py-2.5 text-[14px] leading-relaxed text-slate-700 shadow-sm ring-1 ring-black/5">
-                  {item.text}
+                <StaffAvatar staffKey={item.staffKey} size="sm" />
+                <div className="max-w-[82%] rounded-[14px] rounded-bl-md bg-white px-4 py-2.5 text-[14px] leading-relaxed text-slate-700 shadow-sm ">
+                  <div className="mb-1 flex items-center gap-1.5">
+                    <span className="text-[11px] font-bold text-slate-900">{who.shortName}</span>
+                    <span className="text-[10px] font-semibold text-slate-400">{who.role}</span>
+                  </div>
+                  <p>{item.text}</p>
                 </div>
               </div>
             );
@@ -270,7 +302,7 @@ export default function WorryBank() {
           return (
             <div key={item.id} className="ml-10">
               {reframeFor === w.id ? (
-                <div className="rounded-2xl border border-[#eadfce] bg-white p-3 shadow-sm">
+                <div className="rounded-[14px]  bg-white p-3 shadow-sm">
                   <p className="mb-2 text-[12px] font-bold text-slate-500">
                     이 걱정, 실제로 일어날 확률은?
                   </p>
@@ -285,7 +317,7 @@ export default function WorryBank() {
                       <button
                         key={lk}
                         onClick={() => pickLikelihood(w.id, lk)}
-                        className="flex-1 rounded-xl bg-[#f4efe7] px-2 py-2 text-xs font-bold text-slate-600 transition hover:bg-emerald-50"
+                        className="flex-1 rounded-[12px] bg-[#f2e4cd] px-2 py-2 text-xs font-bold text-slate-600 transition hover:bg-emerald-50"
                       >
                         {lb}
                       </button>
@@ -296,19 +328,19 @@ export default function WorryBank() {
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => burn(w.id)}
-                    className="rounded-xl bg-rose-100 px-3 py-2 text-xs font-bold text-rose-700 transition hover:bg-rose-200 active:scale-95"
+                    className="rounded-[12px] bg-rose-100 px-3 py-2 text-xs font-bold text-rose-700 transition hover:bg-rose-200 active:scale-95"
                   >
                     태워 비우기
                   </button>
                   <button
                     onClick={() => keep(w.id)}
-                    className="rounded-xl bg-emerald-100 px-3 py-2 text-xs font-bold text-emerald-800 transition hover:bg-emerald-200 active:scale-95"
+                    className="rounded-[12px] bg-emerald-100 px-3 py-2 text-xs font-bold text-emerald-800 transition hover:bg-emerald-200 active:scale-95"
                   >
                     금고에 맡기기
                   </button>
                   <button
                     onClick={() => setReframeFor(w.id)}
-                    className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-600 ring-1 ring-black/5 transition hover:bg-slate-50 active:scale-95"
+                    className="rounded-[12px] bg-white px-3 py-2 text-xs font-bold text-slate-600  transition hover:bg-slate-50 active:scale-95"
                   >
                     되짚어보기
                   </button>
@@ -319,7 +351,7 @@ export default function WorryBank() {
         })}
 
         {!feed.some((f) => f.kind === "user") && !typing && (
-          <div className="ml-10 rounded-2xl border border-dashed border-[#d9cbb8] bg-white/70 p-3">
+          <div className="ml-10 rounded-[14px]  bg-white/70 p-3">
             <p className="mb-2 text-[12px] font-bold text-slate-500">
               무슨 말을 할지 막막하면, 이런 걸 눌러서 시작해도 돼요
             </p>
@@ -328,7 +360,7 @@ export default function WorryBank() {
                 <button
                   key={i}
                   onClick={() => useSuggestion(s)}
-                  className="rounded-full bg-[#fff7e8] px-3 py-1.5 text-[12px] font-semibold text-emerald-800 ring-1 ring-black/5 transition hover:bg-emerald-50"
+                  className="rounded-full bg-[#fff3df] px-3 py-1.5 text-[12px] font-semibold text-emerald-800  transition hover:bg-emerald-50"
                 >
                   {s.text}
                 </button>
@@ -342,10 +374,8 @@ export default function WorryBank() {
 
         {typing && (
           <div className="flex items-end gap-2">
-            <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-white shadow ring-1 ring-black/5">
-              <img src="/images/worry-bank-characters.png" alt="" className="h-full w-full object-cover object-[35%_58%]" />
-            </div>
-            <div className="rounded-2xl rounded-bl-md bg-white px-4 py-3 shadow-sm ring-1 ring-black/5">
+            <StaffAvatar staffKey="teller" size="sm" />
+            <div className="rounded-[14px] rounded-bl-md bg-white px-4 py-3 shadow-sm ">
               <span className="flex gap-1">
                 <span className="h-2 w-2 animate-bounce rounded-full bg-gray-300 [animation-delay:-0.2s]" />
                 <span className="h-2 w-2 animate-bounce rounded-full bg-gray-300 [animation-delay:-0.1s]" />
@@ -358,7 +388,7 @@ export default function WorryBank() {
       </div>
 
       {/* 마감 총평(지점장 든든) */}
-      <div className="border-t border-[#eadfce] bg-[#fffaf2] px-4 py-2 text-center text-[11px] text-slate-400">
+      <div className="border-t border-[#eadfce] bg-[#fff3df] px-4 py-2 text-center text-[11px] text-slate-400">
         {managerVerdict(burnedToday, keptCount)}
       </div>
 
@@ -372,7 +402,7 @@ export default function WorryBank() {
               className={`rounded-full px-2.5 py-1 text-[11px] font-bold transition ${
                 category === c.key
                   ? "bg-slate-900 text-white"
-                  : "bg-[#f4efe7] text-slate-500 hover:bg-emerald-50"
+                  : "bg-[#f2e4cd] text-slate-500 hover:bg-emerald-50"
               }`}
             >
               {c.emoji} {c.label}
@@ -398,12 +428,12 @@ export default function WorryBank() {
             }}
             rows={2}
             placeholder="무슨 걱정이든 편하게 쏟아내세요…"
-            className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-[#eadfce] bg-[#fbf8f1] px-4 py-2.5 text-[14px] leading-relaxed text-slate-800 outline-none transition focus:border-emerald-300 focus:bg-white"
+            className="max-h-28 min-h-[44px] flex-1 resize-none rounded-[14px]  bg-[#fff8ea] px-4 py-2.5 text-[14px] leading-relaxed text-slate-800 outline-none transition focus:border-emerald-300 focus:bg-white"
           />
           <button
             onClick={submit}
             disabled={!text.trim() || typing}
-            className={`h-11 shrink-0 rounded-2xl px-4 text-sm font-bold text-white shadow-md transition active:scale-95 ${
+            className={`h-11 shrink-0 rounded-[14px] px-4 text-sm font-bold text-white shadow-md transition active:scale-95 ${
               text.trim() && !typing
                 ? "bg-slate-950 hover:bg-emerald-800"
                 : "cursor-not-allowed bg-gray-300"
