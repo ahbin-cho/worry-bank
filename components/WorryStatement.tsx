@@ -630,19 +630,17 @@ function AssetRow({
           </span>
           <span
             aria-hidden
-            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-all ${
-              open
-                ? "rotate-180 border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-[#eadfce] bg-white text-slate-400 group-hover:border-emerald-200 group-hover:text-emerald-600"
+            className={`flex shrink-0 items-center justify-center text-slate-400 transition-transform ${
+              open ? "rotate-180" : ""
             }`}
           >
             <svg
-              width="12"
-              height="12"
+              width="16"
+              height="16"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth={3}
+              strokeWidth={2.5}
               strokeLinecap="round"
               strokeLinejoin="round"
             >
