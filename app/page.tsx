@@ -2,7 +2,7 @@ import WorryBankApp from "@/components/WorryBankApp";
 
 export default function Page() {
   return (
-    <div className="flex h-[100dvh] min-h-[520px] flex-col bg-[#fff3df] px-3 py-3 text-slate-900 sm:py-4">
+    <div className="flex h-full min-h-0 flex-col bg-[#fff3df] px-3 py-3 text-slate-900">
       <div className="mx-auto flex w-full max-w-lg flex-1 flex-col overflow-hidden">
         <header className="mb-2 flex shrink-0 items-end justify-between">
           <div>
@@ -14,9 +14,13 @@ export default function Page() {
               <span className="text-emerald-900">은행</span>
             </h1>
           </div>
-          <div className="h-16 w-16 overflow-visible">
+          <div className="h-16 w-fit overflow-visible">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/images/staff/teller.png" alt="" className="h-full w-full object-contain" />
+            <img
+              src="/images/worry-bank-characters-header.png"
+              alt=""
+              className="h-full w-full object-contain"
+            />
           </div>
         </header>
 
