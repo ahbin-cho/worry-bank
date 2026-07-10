@@ -2,8 +2,8 @@ import WorryBankApp from "@/components/WorryBankApp";
 
 export default function Page() {
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[#fff3df] px-3 py-3 text-slate-900">
-      <div className="mx-auto flex w-full max-w-lg flex-1 flex-col overflow-hidden">
+    <div className="flex min-h-[100dvh] flex-col bg-[#fff3df] px-3 py-3 text-slate-900">
+      <div className="mx-auto flex w-full max-w-lg flex-1 flex-col">
         <header className="mb-2 flex shrink-0 items-end justify-between">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-800">
@@ -24,8 +24,8 @@ export default function Page() {
           </div>
         </header>
 
-        {/* 앱 본문: 남는 높이를 전부 차지 (iframe에서도 꽉 참) */}
-        <div className="min-h-0 flex-1">
+        {/* 앱 본문: 남는 높이를 채우되, 내용이 길면 문서가 자연스럽게 늘어남 */}
+        <div className="flex flex-1 flex-col">
           <WorryBankApp />
         </div>
 

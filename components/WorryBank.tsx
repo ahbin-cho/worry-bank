@@ -257,9 +257,9 @@ export default function WorryBank({
   );
 
   return (
-    <div className="flex h-full min-h-[440px] flex-col overflow-hidden rounded-[16px] bg-[#fff8ec]  ring-1 ring-stone-900/10">
+    <div className="flex min-h-[60vh] flex-1 flex-col rounded-[16px] bg-[#fff8ec] ring-1 ring-stone-900/10">
       {/* 상단 상태바 */}
-      <div className="flex items-center justify-between border-b border-[#eadfce] bg-[#fffaf2] px-4 py-2.5 text-slate-900">
+      <div className="flex items-center justify-between rounded-t-[16px] border-b border-[#eadfce] bg-[#fffaf2] px-4 py-2.5 text-slate-900">
         <span className="text-[12px] font-extrabold text-emerald-900">
           💬 걱정 창구
         </span>
@@ -274,7 +274,7 @@ export default function WorryBank({
       </div>
 
       {/* 대화 피드 */}
-      <div className="flex-1 space-y-3 overflow-y-auto bg-[#f3e5cf] px-3 py-4 sm:px-4">
+      <div className="flex-1 space-y-3 bg-[#f3e5cf] px-3 py-4 sm:px-4">
         {feed.map((item) => {
           if (item.kind === "user") {
             const c = CATEGORY_MAP[item.category];
@@ -430,16 +430,18 @@ export default function WorryBank({
             </div>
           </div>
         )}
-        <div ref={bottomRef} />
+        <div ref={bottomRef} className="scroll-mb-40" />
       </div>
 
+      {/* 하단 고정 영역 (스크롤해도 화면 아래에 붙어 있음) */}
+      <div className="sticky bottom-0 z-10 rounded-b-[16px]">
       {/* 마감 총평(지점장 든든) */}
       <div className="border-t border-[#eadfce] bg-[#fff8ec] px-4 py-2 text-center text-[11px] text-gray-400">
         🧑‍💼 {managerVerdict(burnedToday, keptCount)}
       </div>
 
       {/* 입력 바 */}
-      <div className="border-t border-[#eadfce] bg-[#fffdf8] px-3 py-3">
+      <div className="rounded-b-[16px] border-t border-[#eadfce] bg-[#fffdf8] px-3 py-3">
         <div className="mb-2 flex flex-wrap gap-1.5">
           {CATEGORIES.map((c) => (
             <button
@@ -491,6 +493,7 @@ export default function WorryBank({
         <p className="mt-1.5 text-center text-[10px] text-gray-300">
           ⌘/Ctrl + Enter로 접수 · 기록은 이 기기에만 저장돼요
         </p>
+      </div>
       </div>
     </div>
   );

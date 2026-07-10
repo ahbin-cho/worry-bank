@@ -19,11 +19,10 @@ html,
 body {
   padding: 0;
   margin: 0;
-  height: 100%;
-  /* iframe 임베드 시 문서(body) 스크롤을 막아 2중 스크롤을 방지.
-     스크롤은 앱 내부의 단일 컨테이너(overflow-y-auto)만 담당한다. */
-  overflow: hidden;
-  overscroll-behavior: none;
+  /* 스크롤은 '문서' 하나만 담당한다(내부 스크롤 컨테이너 없음).
+     iframe 임베드 시에도 스크롤바가 하나뿐이라 2중 스크롤이 생기지 않고,
+     내용 높이에 맞춰 자연스럽게 늘어나 위아래 빈 공간도 줄어든다. */
+  overscroll-behavior-y: none;
 }
 
 body {

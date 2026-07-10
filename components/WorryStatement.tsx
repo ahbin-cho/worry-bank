@@ -130,7 +130,7 @@ export default function WorryStatement({
   /* ── 인트로: 세그먼트 선택 ── */
   if (phase === "intro") {
     return (
-      <div className="h-full overflow-y-auto">
+      <div className="flex flex-1 flex-col">
         <div className="animate-fade-in-up rounded-[16px] bg-[#fffaf2] p-4 ring-1 ring-stone-900/10 ">
           <div className="mx-auto mb-2 h-16 w-16">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -140,7 +140,7 @@ export default function WorryStatement({
               className="h-full w-full object-contain"
             />
           </div>
-          <h2 className="text-center text-xl font-normal leading-snug text-slate-950 [font-family:var(--font-logo)]">
+          <h2 className="text-balance break-keep text-center text-xl font-normal leading-snug text-slate-950 [font-family:var(--font-logo)]">
             먼저, 지금 당신은 어떤 상황에 가까운가요?
           </h2>
           <p className="mt-2 text-center text-[13px] leading-relaxed text-slate-500">
@@ -195,7 +195,7 @@ export default function WorryStatement({
     const q = flow[step];
     const progress = Math.round((step / flow.length) * 100);
     return (
-      <div className="h-full overflow-y-auto">
+      <div className="flex flex-1 flex-col">
         <div className="animate-fade-in-up rounded-[16px] bg-[#fffaf2] p-4 ring-1 ring-stone-900/10 ">
           <div className="mb-6">
             <div className="mb-2 flex items-center justify-between text-sm font-semibold text-emerald-800">

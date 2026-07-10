@@ -35,15 +35,15 @@ export default function WorryVault() {
 
   if (!mounted) {
     return (
-      <div className="flex h-full min-h-[440px] items-center justify-center rounded-2xl bg-[#fffaf2] shadow ring-1 ring-black/5">
+      <div className="flex min-h-[60vh] flex-1 items-center justify-center rounded-2xl bg-[#fffaf2] shadow ring-1 ring-black/5">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#eadfce] border-t-emerald-600" />
       </div>
     );
   }
 
   return (
-    <div className="flex h-full min-h-[440px] flex-col overflow-hidden rounded-2xl bg-[#fffaf2] shadow ring-1 ring-black/5 [font-family:var(--font-body)]">
-      <div className="flex items-center justify-between border-b border-[#eadfce] bg-[#f3e7d3] px-4 py-2.5 text-emerald-950">
+    <div className="flex min-h-[60vh] flex-1 flex-col rounded-2xl bg-[#fffaf2] shadow ring-1 ring-black/5 [font-family:var(--font-body)]">
+      <div className="flex items-center justify-between rounded-t-2xl border-b border-[#eadfce] bg-[#f3e7d3] px-4 py-2.5 text-emerald-950">
         <span className="text-[12px] font-bold">🗂 보관함</span>
         <div className="flex items-center gap-1.5 text-[11px]">
           <span className="rounded-full bg-white/60 px-2 py-1 font-bold text-orange-600">🔥 오늘 비움 {burnedToday}</span>
@@ -51,7 +51,7 @@ export default function WorryVault() {
         </div>
       </div>
 
-      <div className="flex-1 space-y-5 overflow-y-auto px-3 py-4 sm:px-4">
+      <div className="flex-1 space-y-5 px-3 py-4 sm:px-4">
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-xl bg-white/70 p-3 text-center shadow-sm ring-1 ring-black/5">
             <p className="text-[11px] font-bold text-slate-400">지금까지 비운 걱정</p>
