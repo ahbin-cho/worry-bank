@@ -1,8 +1,8 @@
 // ───────────────────────────────────────────────────────────
 //  걱정 은행 (Worry Bank) — '걱정 창구' 로직 & 데이터
-//  걱정을 내 말로 자유롭게 접수 → 창구직원이 따뜻하게 받아줌 →
+//  걱정을 내 말로 자유롭게 접수 → 담당 직원이 따뜻하게 받아줌 →
 //  태워서 비우거나(탕감) 금고에 맡겨(예치) 홀가분해지는 경험.
-//  저장은 localStorage. 규칙 기반, AI 없이 완결.
+//  저장은 localStorage. 규칙 기반, AI 없이 완결. (API 키 넣으면 AI 응답)
 //  ※ 참고용이며 전문 심리·의료 상담을 대체하지 않습니다.
 // ───────────────────────────────────────────────────────────
 
@@ -24,7 +24,7 @@ export const CATEGORY_MAP = CATEGORIES.reduce(
   {} as Record<Category, { key: Category; label: string; emoji: string }>
 );
 
-// ── 은행 직원 (창구 세계관 유지) ──────────────────────────
+// ── 은행 직원 7인 (창구 세계관) ──────────────────────────
 export type StaffKey =
   | "manager"
   | "teller"
@@ -41,6 +41,11 @@ export type Staff = {
   role: string;
   tone: string;
 };
+
+// 캐릭터 이미지 경로 (public/images/staff/{key}.png)
+export function staffImg(key: StaffKey): string {
+  return `/images/staff/${key}.png`;
+}
 
 export const BANK_STAFF: Record<StaffKey, Staff> = {
   manager: {
@@ -87,9 +92,9 @@ export const BANK_STAFF: Record<StaffKey, Staff> = {
   },
   security: {
     key: "security",
-    name: "보안요원 ‘일호’",
-    shortName: "일호",
-    role: "회피 감시",
+    name: "보안요원 ‘철벽’",
+    shortName: "철벽",
+    role: "금고 지킴이",
     tone: "맡겨둔 걱정을 조용히 지키는 금고 담당",
   },
 };
@@ -102,6 +107,7 @@ export type Worry = {
   category: Category;
   createdAt: string; // ISO
   status: WorryStatus;
+  staff?: StaffKey; // 이 걱정을 접수한 담당 직원
 };
 
 const STORAGE_KEY = "worry-bank:v2";
@@ -149,10 +155,30 @@ function hash(str: string): number {
   return h;
 }
 
-export function pickStaffForWorry(
-  worry: Worry,
-  countToday = 0
-): StaffKey {
+/**
+ * 걱정을 저장소에 바로 등록한다. (명세서→창구 유동 전환용)
+ * 명세서에서 진단한 걱정을 즉시 태우거나(burned) 금고에 맡길(kept) 때 사용.
+ */
+export function depositWorry(
+  text: string,
+  category: Category,
+  status: WorryStatus = "deposited",
+  staff?: StaffKey
+): Worry {
+  const worry: Worry = {
+    id: `w${Date.now()}-${hash(text)}`,
+    text,
+    category,
+    createdAt: new Date().toISOString(),
+    status,
+    staff,
+  };
+  saveWorries([worry, ...loadWorries()]);
+  return worry;
+}
+
+// 걱정 카테고리에 맞는 담당 직원을 배정 (걱정마다 다른 직원이 응대)
+export function pickStaffForWorry(worry: Worry, countToday = 0): StaffKey {
   const pools: Record<Category, StaffKey[]> = {
     money: ["loan", "manager", "jar", "teller"],
     relationship: ["teller", "loan", "manager", "writeoff"],
@@ -164,19 +190,32 @@ export function pickStaffForWorry(
   return pool[hash(`${worry.text}-${countToday}`) % pool.length];
 }
 
-// ── 창구직원 또박의 접수 응대(따뜻한 인정·위로) ───────────
+// ── 접수 응대(따뜻한 인정·위로) ───────────────────────────
 const ACK_GENERAL = [
   "접수됐어요. 이거 꺼내놓느라 애쓰셨어요.",
   "잘 가져오셨어요. 여기 두고 가셔도 됩니다.",
   "무거우셨죠. 제가 잘 받았어요.",
   "말해줘서 고마워요. 혼자 들고 있지 않아도 돼요.",
   "충분히 걱정할 만한 일이에요. 여기서는 편히 내려놓으세요.",
+  "그 마음, 접수 완료했습니다. 오느라 고생하셨어요.",
 ];
 const ACK_BY_CATEGORY: Partial<Record<Category, string[]>> = {
-  money: ["돈 걱정은 누구나 무거워요. 숫자 말고 마음부터 받을게요."],
-  relationship: ["관계에서 오는 마음, 참 복잡하죠. 그 마음 그대로 접수할게요."],
-  future: ["앞이 안 보일 때가 제일 무섭죠. 그 불안, 여기 맡겨두세요."],
-  health: ["몸 걱정은 특히 혼자 삼키기 힘들어요. 잘 가져오셨어요."],
+  money: [
+    "돈 걱정은 누구나 무거워요. 숫자 말고 마음부터 받을게요.",
+    "통장은 잠시 접어두고, 그 불안부터 접수하겠습니다.",
+  ],
+  relationship: [
+    "관계에서 오는 마음, 참 복잡하죠. 그 마음 그대로 접수할게요.",
+    "사람 때문에 생긴 마음은 사람에게 다 못 하니까요. 여기 두고 가세요.",
+  ],
+  future: [
+    "앞이 안 보일 때가 제일 무섭죠. 그 불안, 여기 맡겨두세요.",
+    "아직 오지 않은 일이라 더 크게 느껴지는 거예요. 잘 가져오셨어요.",
+  ],
+  health: [
+    "몸 걱정은 특히 혼자 삼키기 힘들어요. 잘 가져오셨어요.",
+    "건강 앞에선 누구나 작아지죠. 그 마음 여기서 받겠습니다.",
+  ],
 };
 
 export function tellerAck(worry: Worry): string {
@@ -227,48 +266,42 @@ export function managerVerdict(burnedToday: number, keptCount: number): string {
   return "무슨 걱정이든 편하게 꺼내놓으세요. 여기서는 다 받아드려요.";
 }
 
-// ───────────────────────────────────────────────────────────
-//  창구직원 '또박' 페르소나 응답
-//  ▸ 페르소나: 20년 차 베테랑 창구직원. 어떤 걱정도 다 들어봤다는 듬직함.
-//    판단하지 않고, 다정하고 담백하게 받아준다. 가끔 은은한 유머.
-//  ▸ [API 이음새] 지금은 규칙 기반. 나중에 getTellerReply 내부만
-//    LLM API 호출로 교체하면 그대로 'AI 또박'이 된다.
-// ───────────────────────────────────────────────────────────
-
-const NUDGES = [
-  "이제 태워서 비울까요, 아니면 금고에 맡겨둘까요?",
-  "여기 두고 가셔도 돼요. 어떻게 할지는 천천히 정하세요.",
-  "한결 나으셨길. 비우실지 맡기실지 편하게 골라주세요.",
-];
-
+// ── 직원별 응대 대사 (페르소나 확장) ──────────────────────
 const STAFF_NUDGES: Record<StaffKey, string[]> = {
   manager: [
     "잔고보다 흐름을 볼게요. 지금 할 수 있는 것과 지나가게 둘 것을 나누면 됩니다.",
     "이 걱정은 전부 갚는 문제라기보다, 흐름을 다시 잡는 문제에 가까워요.",
+    "큰 그림에선 이 정도는 관리 가능한 잔고예요. 너무 크게 보지 마세요.",
   ],
   teller: [
     "먼저 잘 접수해둘게요. 비우거나 맡기는 건 천천히 정하셔도 됩니다.",
     "문장이 된 걱정은 이미 조금 가벼워져요. 여기까지 가져온 것부터 처리된 겁니다.",
+    "제가 곁에서 들을게요. 다 말하고 나서 태울지 맡길지 정하면 돼요.",
   ],
   elf: [
     "이자는 생각을 오래 돌릴수록 붙어요. 오늘은 원금만 남기고 과장된 이자는 떼어볼게요.",
     "방금 걱정이 몸집을 키우려 했어요. 제가 증식 구간에 빨간 밑줄 쳐둘게요.",
+    "곱씹을수록 커지는 종류네요. 지금 딱 멈추면 이자가 안 붙어요.",
   ],
   jar: [
     "미래 걱정은 한 번에 갚지 말고, 오늘치 한 칸만 채우면 됩니다.",
     "먼 미래 잔고는 오늘 전부 계산하지 않아도 돼요. 작게 쪼개서 적립해둘게요.",
+    "오늘 할 수 있는 아주 작은 한 걸음, 그거 하나만 저금통에 넣어요.",
   ],
   loan: [
     "이건 당신 몫의 책임과 남의 몫이 섞여 있어요. 갚을 부분만 남기고 나머지는 보류하겠습니다.",
     "상환 능력부터 보겠습니다. 오늘 갚을 수 없는 죄책감은 연체로 잡지 않을게요.",
+    "이 빚, 정말 당신이 다 져야 하는 게 맞나요? 심사부터 다시 해볼게요.",
   ],
   writeoff: [
     "통제 밖에 있는 부분은 부실채권으로 분류해도 됩니다. 전부 안고 있지 않아도 돼요.",
     "이 걱정은 오래 들고 있어도 수익이 없네요. 태워 비울 후보로 올려둘게요.",
+    "못 갚을 걱정을 계속 이월하면 이자만 늘어요. 시원하게 탕감할까요?",
   ],
   security: [
     "금고에 맡겨도 사라지는 척하는 게 아니에요. 잠시 보이지 않게 보관하는 겁니다.",
     "지금은 지켜두는 것도 방법이에요. 필요할 때 다시 꺼낼 수 있게 잠가둘게요.",
+    "회피는 임시 예치일 뿐이지만, 오늘만큼은 안전하게 맡아드릴게요.",
   ],
 };
 
@@ -278,12 +311,15 @@ export type TellerReplyContext = {
 };
 
 /** 규칙 기반 응답(폴백). API 키가 없을 때/에러일 때 이걸 쓴다. */
-export function ruleBasedReply(worry: Worry): string {
+export function ruleBasedReply(worry: Worry, staffKey?: StaffKey): string {
   const ack = tellerAck(worry);
-  const nudge = NUDGES[hash(worry.text + worry.id) % NUDGES.length];
-  return `${ack} ${nudge}`;
+  const key = staffKey ?? worry.staff ?? "teller";
+  const pool = STAFF_NUDGES[key];
+  const line = pool[hash(worry.text + worry.id + key) % pool.length];
+  return `${ack} ${line}`;
 }
 
+/** 특정 직원의 규칙 기반 응대 */
 export function staffReply(
   worry: Worry,
   staffKey: StaffKey,
@@ -291,55 +327,60 @@ export function staffReply(
 ): string {
   const ack = tellerAck(worry);
   const pool = STAFF_NUDGES[staffKey];
-  const line = pool[hash(`${worry.text}-${staffKey}-${ctx.countToday ?? 0}`) % pool.length];
+  const line =
+    pool[hash(`${worry.text}-${staffKey}-${ctx.countToday ?? 0}`) % pool.length];
   return `${ack} ${line}`;
 }
 
-/** LLM에 넘길 또박 페르소나 시스템 프롬프트 (서버 /api/teller에서 사용) */
-export const TELLER_SYSTEM_PROMPT = `너는 '걱정 은행'의 창구직원 '또박'이다.
+/** LLM에 넘길 페르소나 시스템 프롬프트 (서버 /api/teller에서 사용) */
+export const TELLER_SYSTEM_PROMPT = `너는 '걱정 은행'의 은행 직원이다. 손님이 걱정을 털어놓으면 담당 직원으로서 따뜻하게 받아준다.
 
-[페르소나]
-- 20년 차 베테랑 은행 창구직원. 어떤 걱정이든 다 들어봤다는 듬직함이 있다.
-- 절대 판단하지 않고, 다정하고 담백하게 받아준다. 가끔 아주 은은한 유머.
+[직원 페르소나 — 담당(staff)에 맞춰 말투를 잡아라]
+- teller(창구직원 또박): 먼저 들어주고 담백하게 정돈. 20년 차 베테랑의 듬직함.
+- manager(지점장 든든): 큰 그림·흐름으로 침착하게 정리.
+- elf(이자요정 불어): 걱정이 부풀려지는 지점을 콕 집어 알려줌.
+- jar(적금통 차곡): 미래 걱정을 오늘치 작은 실행으로 쪼갬.
+- loan(대출심사 갚어): 내 책임과 남의 몫을 엄격히 구분.
+- writeoff(부실채권 정리 탕감): 통제 밖 걱정을 시원하게 정리.
+- security(보안요원 철벽): 맡긴 걱정을 조용히 안전하게 보관.
 
 [말투]
-- 존댓말. 따뜻하지만 담백하고 짧게. 전체 2~3문장 이내.
-- 이모지는 최대 1개, 없어도 좋다.
+- 존댓말. 따뜻하지만 담백하고 짧게. 전체 2~3문장 이내. 이모지는 최대 1개.
 
 [반드시 지킬 것]
-- 사용자가 방금 털어놓은 걱정을 '받아주고 인정'하는 것이 최우선. 섣부른 해결책·훈계·정보 나열 금지.
-- 심리학 용어를 늘어놓거나 진단하지 말 것.
-- 의료·심리 상태를 단정하거나 진단하지 말 것.
-- 자해·자살 등 위기 신호가 보이면, 짧고 따뜻하게 곁의 사람이나 전문 상담(예: 자살예방상담 109)에 연결되길 권한다.
+- 방금 털어놓은 걱정을 '받아주고 인정'하는 것이 최우선. 섣부른 해결책·훈계·정보 나열 금지.
+- 심리학 용어를 늘어놓거나 진단하지 말 것. 의료·심리 상태를 단정하지 말 것.
+- 자해·자살 등 위기 신호가 보이면 짧고 따뜻하게 곁의 사람이나 전문 상담(자살예방상담 109)에 연결되길 권한다.
 - 마지막은 '태워 비우기'나 '금고에 맡기기'를 부드럽게 권하며 마무리한다.
 - 한국어로만 답한다.`;
 
 export type ApiReplyResponse = { reply: string; source?: string };
 
 /**
- * 창구직원 또박의 접수 응답을 가져온다.
- * 1) 브라우저에서 /api/teller 호출 → 서버가 (키 있으면) LLM, 없으면 규칙 기반으로 응답
+ * 담당 직원의 접수 응답을 가져온다.
+ * 1) 브라우저에서 /api/teller 호출 → 서버가 (키 있으면) LLM, 없으면 규칙 기반
  * 2) 네트워크/서버 실패 시 클라이언트에서 규칙 기반으로 폴백
- * → API 키만 설정하면 UI 변경 없이 그대로 'AI 또박'이 된다.
+ * → API 키만 설정하면 UI 변경 없이 그대로 'AI 응답'이 된다.
  */
 export async function getTellerReply(
   worry: Worry,
   ctx: TellerReplyContext = {}
 ): Promise<string> {
+  const staffKey = worry.staff ?? "teller";
   if (typeof window !== "undefined") {
     try {
       const res = await fetch("/api/teller", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ worry, countToday: ctx.countToday ?? 0 }),
+        body: JSON.stringify({ worry, staffKey, countToday: ctx.countToday ?? 0 }),
       });
       if (res.ok) {
         const data = (await res.json()) as ApiReplyResponse;
         if (data?.reply) return data.reply;
       }
     } catch {
-      /* 네트워크 실패 → 아래 규칙 기반으로 폴백 */
+      /* 네트워크 실패 → 규칙 기반으로 폴백 */
     }
   }
-  return ruleBasedReply(worry);
+  return staffReply(worry, staffKey, ctx);
 }

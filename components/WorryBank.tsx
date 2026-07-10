@@ -5,12 +5,13 @@ import {
   CATEGORIES,
   CATEGORY_MAP,
   BANK_STAFF,
+  staffImg,
   loadWorries,
   saveWorries,
   clearWorries,
   todayISO,
   pickStaffForWorry,
-  staffReply,
+  getTellerReply,
   burnLine,
   keepLine,
   reframeLine,
@@ -20,60 +21,40 @@ import {
   type Likelihood,
   type StaffKey,
 } from "@/lib/bank";
+import { loadSegment, SEGMENT_MAP } from "@/lib/segments";
 
 type Feed =
   | { kind: "user"; id: string; text: string; category: Category }
-  | { kind: "staff"; id: string; text: string; staffKey: StaffKey }
+  | { kind: "staff"; id: string; staffKey: StaffKey; text: string }
   | { kind: "worry"; id: string; worryId: string };
 
-const TELLER = BANK_STAFF.teller;
-const SECURITY = BANK_STAFF.security;
-
-const STAFF_IMAGE: Record<StaffKey, string> = {
-  manager: "/images/staff/manager.png",
-  teller: "/images/staff/teller.png",
-  elf: "/images/staff/elf.png",
-  jar: "/images/staff/jar.png",
-  loan: "/images/staff/loan.png",
-  writeoff: "/images/staff/writeoff.png",
-  security: "/images/staff/security.png",
-};
-
-function StaffAvatar({
-  staffKey,
-  size = "md",
-}: {
-  staffKey: StaffKey;
-  size?: "sm" | "md" | "lg";
-}) {
-  const box = size === "lg" ? "h-20 w-20" : size === "sm" ? "h-12 w-12" : "h-14 w-14";
-
-  return (
-    <img
-      src={STAFF_IMAGE[staffKey]}
-      alt=""
-      className={`${box} shrink-0 object-contain mix-blend-multiply`}
-    />
-  );
-}
-
-// "무슨 말을 해야 할지 모를 때" 눌러서 시작하는 예시 걱정
+// "무슨 말을 해야 할지 모를 때" 눌러서 시작하는 예시 걱정 (다양하게)
 const SUGGESTIONS: { cat: Category; text: string }[] = [
   { cat: "money", text: "요즘 돈이 자꾸 새는 것 같아서 불안해요." },
   { cat: "relationship", text: "그 사람이 나를 어떻게 생각할지 자꾸 신경 쓰여요." },
+  { cat: "relationship", text: "괜히 나만 애쓰는 것 같아서 서운해요." },
   { cat: "future", text: "이 길이 맞는 건지 모르겠어요." },
+  { cat: "future", text: "남들보다 뒤처지는 것 같아 초조해요." },
   { cat: "health", text: "검진 결과가 나올까 봐 무서워요." },
   { cat: "etc", text: "그냥 요즘 이유 없이 마음이 무거워요." },
+  { cat: "etc", text: "실수한 게 자꾸 떠올라서 잠이 안 와요." },
 ];
 
-export default function WorryBank() {
+export default function WorryBank({
+  initialText,
+}: {
+  initialText?: string;
+} = {}) {
   const [mounted, setMounted] = useState(false);
   const [worries, setWorries] = useState<Worry[]>([]);
   const [feed, setFeed] = useState<Feed[]>([]);
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initialText ?? "");
   const [category, setCategory] = useState<Category>("etc");
   const [typing, setTyping] = useState(false);
+  const [typingStaff, setTypingStaff] = useState<StaffKey>("teller");
   const [reframeFor, setReframeFor] = useState<string | null>(null);
+  const [suggestions, setSuggestions] =
+    useState<{ cat: Category; text: string }[]>(SUGGESTIONS);
 
   const idRef = useRef(0);
   const nid = () => `f${idRef.current++}`;
@@ -89,6 +70,14 @@ export default function WorryBank() {
   useEffect(() => {
     const w = loadWorries();
     setWorries(w);
+    const seg = loadSegment();
+    if (seg && SEGMENT_MAP[seg])
+      setSuggestions(
+        SEGMENT_MAP[seg].suggestions.map((s) => ({
+          cat: s.cat as Category,
+          text: s.text,
+        }))
+      );
     const kept = w.filter((x) => x.status === "kept").length;
     const greet: Feed[] = [
       {
@@ -121,7 +110,6 @@ export default function WorryBank() {
   const keptCount = worries.filter((w) => w.status === "kept").length;
 
   const worryById = (id: string) => worries.find((w) => w.id === id);
-
   const persist = (next: Worry[]) => {
     setWorries(next);
     saveWorries(next);
@@ -130,32 +118,36 @@ export default function WorryBank() {
   const submit = async () => {
     const t = text.trim();
     if (!t || typing) return;
-    const worry: Worry = {
+    const countToday = worries.filter(
+      (w) => w.createdAt.slice(0, 10) === today
+    ).length;
+    const base: Worry = {
       id: `w${Date.now()}-${idRef.current++}`,
       text: t,
       category,
       createdAt: new Date().toISOString(),
       status: "deposited",
     };
+    const staffKey = pickStaffForWorry(base, countToday);
+    const worry: Worry = { ...base, staff: staffKey };
+
     const next = [worry, ...worries];
     persist(next);
     setFeed((f) => [...f, { kind: "user", id: nid(), text: t, category }]);
     setText("");
+    setTypingStaff(staffKey);
     setTyping(true);
 
-    const countToday = next.filter(
-      (w) => w.createdAt.slice(0, 10) === today
-    ).length;
-    const staffKey = pickStaffForWorry(worry, countToday);
-    const reply = staffReply(worry, staffKey, { countToday });
+    // [API 이음새] getTellerReply → 담당 직원(worry.staff)로 응답. 딜레이는 사람이 받아적는 느낌.
+    const reply = await getTellerReply(worry, { countToday });
     window.setTimeout(() => {
       setFeed((f) => [
         ...f,
-        { kind: "staff", id: nid(), text: reply, staffKey },
+        { kind: "staff", id: nid(), staffKey, text: reply },
         { kind: "worry", id: nid(), worryId: worry.id },
       ]);
       setTyping(false);
-    }, 750);
+    }, 700);
   };
 
   const burn = (worryId: string) => {
@@ -186,7 +178,10 @@ export default function WorryBank() {
 
   const pickLikelihood = (worryId: string, lk: Likelihood) => {
     setReframeFor(null);
-    setFeed((f) => [...f, { kind: "staff", id: nid(), staffKey: "manager", text: reframeLine(lk) }]);
+    setFeed((f) => [
+      ...f,
+      { kind: "staff", id: nid(), staffKey: "elf", text: reframeLine(lk) },
+    ]);
   };
 
   const reset = () => {
@@ -206,75 +201,59 @@ export default function WorryBank() {
 
   if (!mounted) {
     return (
-      <div className="rounded-[18px] bg-[#fff3df] p-10 text-center shadow-lg ">
-        <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-emerald-100 border-t-emerald-500" />
-        <p className="mt-4 text-sm font-semibold text-slate-400">창구를 여는 중...</p>
+      <div className="flex h-full min-h-[440px] items-center justify-center rounded-[28px] bg-[#fffaf2] shadow ring-1 ring-stone-900/10">
+        <div className="text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-emerald-100 border-t-emerald-700" />
+          <p className="mt-4 text-sm font-semibold text-gray-400">창구를 여는 중…</p>
+        </div>
       </div>
     );
   }
 
+  const StaffAvatar = ({ k }: { k: StaffKey }) => (
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow ring-1 ring-black/5">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={staffImg(k)} alt={BANK_STAFF[k].shortName} className="h-full w-full object-contain" />
+    </div>
+  );
+
   return (
-    <div className="flex h-[calc(100dvh-136px)] min-h-[560px] max-h-[720px] flex-col overflow-hidden rounded-[18px] bg-[#fff3df] shadow-lg ">
-      {/* 페르소나 헤더 */}
-      <div className="border-b border-[#eadfce] bg-[#fff3df] px-4 py-3">
-        <div className="flex items-center gap-3">
-          <StaffAvatar staffKey="teller" size="lg" />
-          <div className="min-w-0 flex-1">
-            <p className="text-[15px] font-semibold leading-tight text-slate-950 [font-family:var(--font-display)]">걱정 접수팀</p>
-            <p className="mt-0.5 text-[11px] leading-snug text-slate-500">
-              또박이 받고, 담당 직원이 이어서 정리해드려요.
-            </p>
-          </div>
-        </div>
-        <div className="mt-3 flex gap-1.5 overflow-hidden">
-          {(["teller", "manager", "jar", "loan", "writeoff", "security"] as StaffKey[]).map((key) => (
-            <span
-              key={key}
-              className="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-slate-500 "
-            >
-              {BANK_STAFF[key].shortName}
-            </span>
-          ))}
-        </div>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          <span className="rounded-[14px] bg-white px-3 py-1.5 text-center text-[11px] font-bold text-rose-600 ">
-            오늘 비움 {burnedToday}
-          </span>
-          <span className="rounded-[14px] bg-white px-3 py-1.5 text-center text-[11px] font-bold text-emerald-700 ">
-            금고 보관 {keptCount}
-          </span>
+    <div className="flex h-full min-h-[440px] flex-col overflow-hidden rounded-[28px] bg-[#fff8ec] shadow-[0_18px_44px_rgba(33,26,15,0.10)] ring-1 ring-stone-900/10">
+      {/* 상단 상태바 */}
+      <div className="flex items-center justify-between border-b border-[#eadfce] bg-[#fffaf2] px-4 py-2.5 text-slate-900">
+        <span className="text-[12px] font-extrabold text-emerald-900">💬 걱정 창구</span>
+        <div className="flex items-center gap-1.5 text-[11px]">
+          <span className="rounded-full bg-rose-50 px-2 py-1 font-bold text-rose-700">🔥 오늘 비움 {burnedToday}</span>
+          <span className="rounded-full bg-emerald-50 px-2 py-1 font-bold text-emerald-800">🏦 금고 {keptCount}</span>
         </div>
       </div>
 
       {/* 대화 피드 */}
-      <div className="flex-1 space-y-3 overflow-y-auto bg-[#f6ead6] px-3 py-4">
+      <div className="flex-1 space-y-3 overflow-y-auto bg-[#f3e5cf] px-3 py-4 sm:px-4">
         {feed.map((item) => {
           if (item.kind === "user") {
             const c = CATEGORY_MAP[item.category];
             return (
               <div key={item.id} className="flex justify-end">
-                <div className="max-w-[82%] rounded-[14px] rounded-br-md bg-slate-900 px-4 py-2.5 text-[14px] leading-relaxed text-white shadow-sm">
-                  {item.category !== "etc" && (
-                    <span className="mr-1 opacity-80">
-                      {c.emoji}
-                    </span>
-                  )}
+                <div className="max-w-[82%] rounded-2xl rounded-br-md bg-slate-950 px-4 py-2.5 text-[14px] leading-relaxed text-white shadow-sm">
+                  {item.category !== "etc" && <span className="mr-1 opacity-80">{c.emoji}</span>}
                   {item.text}
                 </div>
               </div>
             );
           }
           if (item.kind === "staff") {
-            const who = BANK_STAFF[item.staffKey];
+            const s = BANK_STAFF[item.staffKey];
             return (
               <div key={item.id} className="flex items-end gap-2">
-                <StaffAvatar staffKey={item.staffKey} size="sm" />
-                <div className="max-w-[82%] rounded-[14px] rounded-bl-md bg-white px-4 py-2.5 text-[14px] leading-relaxed text-slate-700 shadow-sm ">
-                  <div className="mb-1 flex items-center gap-1.5">
-                    <span className="text-[11px] font-bold text-slate-900">{who.shortName}</span>
-                    <span className="text-[10px] font-semibold text-slate-400">{who.role}</span>
+                <StaffAvatar k={item.staffKey} />
+                <div className="max-w-[82%]">
+                  <p className="mb-0.5 ml-1 text-[11px] font-bold text-gray-400">
+                    {s.name}
+                  </p>
+                  <div className="rounded-2xl rounded-bl-md bg-[#fffdf8] px-4 py-2.5 text-[14px] leading-relaxed text-gray-800 shadow-sm ring-1 ring-black/5">
+                    {item.text}
                   </div>
-                  <p>{item.text}</p>
                 </div>
               </div>
             );
@@ -285,64 +264,44 @@ export default function WorryBank() {
           if (w.status === "burned")
             return (
               <div key={item.id} className="flex justify-center">
-                <span className="rounded-full bg-rose-50 px-3 py-1 text-[11px] font-semibold text-rose-500 ring-1 ring-rose-100">
-                  비운 걱정
-                </span>
+                <span className="rounded-full bg-stone-200 px-3 py-1 text-[11px] font-semibold text-stone-500">🔥 비운 걱정</span>
               </div>
             );
           if (w.status === "kept")
             return (
               <div key={item.id} className="flex justify-center">
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-600 ring-1 ring-emerald-100">
-                  금고 보관 중
-                </span>
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-800">🏦 금고 보관 중</span>
               </div>
             );
-          // deposited → 액션 카드
           return (
-            <div key={item.id} className="ml-10">
+            <div key={item.id} className="ml-11">
               {reframeFor === w.id ? (
-                <div className="rounded-[14px]  bg-white p-3 shadow-sm">
-                  <p className="mb-2 text-[12px] font-bold text-slate-500">
-                    이 걱정, 실제로 일어날 확률은?
-                  </p>
+                <div className="rounded-2xl border border-[#eadfce] bg-[#fffdf8] p-3 shadow-sm">
+                  <p className="mb-2 text-[12px] font-bold text-gray-500">이 걱정, 실제로 일어날 확률은?</p>
                   <div className="flex gap-2">
-                    {(
-                      [
-                        ["low", "거의 0"],
-                        ["mid", "반반"],
-                        ["high", "높음"],
-                      ] as [Likelihood, string][]
-                    ).map(([lk, lb]) => (
-                      <button
-                        key={lk}
-                        onClick={() => pickLikelihood(w.id, lk)}
-                        className="flex-1 rounded-[12px] bg-[#f2e4cd] px-2 py-2 text-xs font-bold text-slate-600 transition hover:bg-emerald-50"
-                      >
-                        {lb}
-                      </button>
-                    ))}
+                    {([["low", "거의 0"], ["mid", "반반"], ["high", "높음"]] as [Likelihood, string][]).map(
+                      ([lk, lb]) => (
+                        <button
+                          key={lk}
+                          onClick={() => pickLikelihood(w.id, lk)}
+                          className="flex-1 rounded-xl bg-[#f1e0c6] px-2 py-2 text-xs font-bold text-gray-700 transition hover:bg-emerald-50"
+                        >
+                          {lb}
+                        </button>
+                      )
+                    )}
                   </div>
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => burn(w.id)}
-                    className="rounded-[12px] bg-rose-100 px-3 py-2 text-xs font-bold text-rose-700 transition hover:bg-rose-200 active:scale-95"
-                  >
-                    태워 비우기
+                  <button onClick={() => burn(w.id)} className="rounded-xl bg-rose-500 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-rose-600 active:scale-95">
+                    🔥 태워 비우기
                   </button>
-                  <button
-                    onClick={() => keep(w.id)}
-                    className="rounded-[12px] bg-emerald-100 px-3 py-2 text-xs font-bold text-emerald-800 transition hover:bg-emerald-200 active:scale-95"
-                  >
-                    금고에 맡기기
+                  <button onClick={() => keep(w.id)} className="rounded-xl bg-emerald-800 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-900 active:scale-95">
+                    🏦 금고에 맡기기
                   </button>
-                  <button
-                    onClick={() => setReframeFor(w.id)}
-                    className="rounded-[12px] bg-white px-3 py-2 text-xs font-bold text-slate-600  transition hover:bg-slate-50 active:scale-95"
-                  >
-                    되짚어보기
+                  <button onClick={() => setReframeFor(w.id)} className="rounded-xl bg-[#fffdf8] px-3 py-2 text-xs font-bold text-gray-600 ring-1 ring-[#eadfce] transition hover:bg-[#fff8ec] active:scale-95">
+                    💭 되짚어보기
                   </button>
                 </div>
               )}
@@ -351,31 +310,23 @@ export default function WorryBank() {
         })}
 
         {!feed.some((f) => f.kind === "user") && !typing && (
-          <div className="ml-10 rounded-[14px]  bg-white/70 p-3">
-            <p className="mb-2 text-[12px] font-bold text-slate-500">
-              무슨 말을 할지 막막하면, 이런 걸 눌러서 시작해도 돼요
-            </p>
+          <div className="ml-11 rounded-2xl border border-dashed border-[#d8c7ae] bg-white/70 p-3">
+            <p className="mb-2 text-[12px] font-bold text-gray-500">무슨 말을 할지 막막하면, 이런 걸 눌러서 시작해도 돼요 👇</p>
             <div className="flex flex-wrap gap-1.5">
-              {SUGGESTIONS.map((s, i) => (
-                <button
-                  key={i}
-                  onClick={() => useSuggestion(s)}
-                  className="rounded-full bg-[#fff3df] px-3 py-1.5 text-[12px] font-semibold text-emerald-800  transition hover:bg-emerald-50"
-                >
+              {suggestions.map((s, i) => (
+                <button key={i} onClick={() => useSuggestion(s)} className="rounded-full bg-[#fff8ec] px-3 py-1.5 text-[12px] font-semibold text-emerald-800 transition hover:bg-emerald-50">
                   {s.text}
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-[11px] text-slate-400">
-              눌러도 바로 안 보내져요. 입력창에서 고치고 ‘접수’를 누르면 돼요.
-            </p>
+            <p className="mt-2 text-[11px] text-gray-400">눌러도 바로 안 보내져요. 입력창에서 고치고 ‘접수’를 누르면 돼요.</p>
           </div>
         )}
 
         {typing && (
           <div className="flex items-end gap-2">
-            <StaffAvatar staffKey="teller" size="sm" />
-            <div className="rounded-[14px] rounded-bl-md bg-white px-4 py-3 shadow-sm ">
+            <StaffAvatar k={typingStaff} />
+            <div className="rounded-2xl rounded-bl-md bg-[#fffdf8] px-4 py-3 shadow-sm ring-1 ring-black/5">
               <span className="flex gap-1">
                 <span className="h-2 w-2 animate-bounce rounded-full bg-gray-300 [animation-delay:-0.2s]" />
                 <span className="h-2 w-2 animate-bounce rounded-full bg-gray-300 [animation-delay:-0.1s]" />
@@ -388,30 +339,25 @@ export default function WorryBank() {
       </div>
 
       {/* 마감 총평(지점장 든든) */}
-      <div className="border-t border-[#eadfce] bg-[#fff3df] px-4 py-2 text-center text-[11px] text-slate-400">
-        {managerVerdict(burnedToday, keptCount)}
+      <div className="border-t border-[#eadfce] bg-[#fff8ec] px-4 py-2 text-center text-[11px] text-gray-400">
+        🧑‍💼 {managerVerdict(burnedToday, keptCount)}
       </div>
 
       {/* 입력 바 */}
-      <div className="border-t border-[#eadfce] bg-white px-3 py-3">
+      <div className="border-t border-[#eadfce] bg-[#fffdf8] px-3 py-3">
         <div className="mb-2 flex flex-wrap gap-1.5">
           {CATEGORIES.map((c) => (
             <button
               key={c.key}
               onClick={() => setCategory(c.key)}
               className={`rounded-full px-2.5 py-1 text-[11px] font-bold transition ${
-                category === c.key
-                  ? "bg-slate-900 text-white"
-                  : "bg-[#f2e4cd] text-slate-500 hover:bg-emerald-50"
+                category === c.key ? "bg-slate-950 text-white" : "bg-[#f1e0c6] text-gray-600 hover:bg-emerald-50"
               }`}
             >
               {c.emoji} {c.label}
             </button>
           ))}
-          <button
-            onClick={reset}
-            className="ml-auto rounded-full px-2.5 py-1 text-[11px] font-semibold text-gray-300 hover:text-rose-500"
-          >
+          <button onClick={reset} className="ml-auto rounded-full px-2.5 py-1 text-[11px] font-semibold text-gray-300 hover:text-rose-500">
             초기화
           </button>
         </div>
@@ -428,23 +374,19 @@ export default function WorryBank() {
             }}
             rows={2}
             placeholder="무슨 걱정이든 편하게 쏟아내세요…"
-            className="max-h-28 min-h-[44px] flex-1 resize-none rounded-[14px]  bg-[#fff8ea] px-4 py-2.5 text-[14px] leading-relaxed text-slate-800 outline-none transition focus:border-emerald-300 focus:bg-white"
+            className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border-2 border-gray-100 bg-[#fff8ec] px-4 py-2.5 text-[14px] leading-relaxed text-gray-800 outline-none transition focus:border-emerald-200 focus:bg-white"
           />
           <button
             onClick={submit}
             disabled={!text.trim() || typing}
-            className={`h-11 shrink-0 rounded-[14px] px-4 text-sm font-bold text-white shadow-md transition active:scale-95 ${
-              text.trim() && !typing
-                ? "bg-slate-950 hover:bg-emerald-800"
-                : "cursor-not-allowed bg-gray-300"
+            className={`h-11 shrink-0 rounded-2xl px-4 text-sm font-bold text-white shadow-md transition active:scale-95 ${
+              text.trim() && !typing ? "bg-slate-950 hover:bg-emerald-900" : "cursor-not-allowed bg-gray-300"
             }`}
           >
             접수
           </button>
         </div>
-        <p className="mt-1.5 text-center text-[10px] text-gray-300">
-          ⌘/Ctrl + Enter로 접수 · 기록은 이 기기에만 저장돼요
-        </p>
+        <p className="mt-1.5 text-center text-[10px] text-gray-300">⌘/Ctrl + Enter로 접수 · 기록은 이 기기에만 저장돼요</p>
       </div>
     </div>
   );

@@ -1,9 +1,11 @@
 // ───────────────────────────────────────────────────────────
-//  걱정 명세서(진단) 모드 — 원래 기획의 10문항 → 재무제표 스타일 결과.
+//  걱정 명세서(진단) 모드 — 12문항 → 재무제표 스타일 결과.
 //  걱정을 예금·적금·대출·부실채권으로 분류하고, 은행 직원 7인이 등장.
 //  CBT(인지 왜곡·통제가능성·4단계 재구성)도 함께. 규칙 기반, AI 없이 완결.
 //  ※ 참고용이며 전문 심리·의료 상담을 대체하지 않습니다.
 // ───────────────────────────────────────────────────────────
+
+import { SEGMENT_MAP, type SegmentKey } from "./segments";
 
 export type SCategory = "money" | "relationship" | "future" | "health";
 
@@ -11,22 +13,73 @@ export const SCATEGORY_META: Record<
   SCategory,
   { label: string; emoji: string; base: number; worries: string[] }
 > = {
-  money: { label: "돈", emoji: "💰", base: 300, worries: ["다음 달 카드값 감당될까", "이러다 노후 어쩌지", "통장이 텅 비면 어떡하지"] },
-  relationship: { label: "관계", emoji: "🫂", base: 220, worries: ["그 사람이 날 어떻게 볼까", "이 관계가 틀어지면 어쩌지", "내가 말실수한 건 아닐까"] },
-  future: { label: "미래", emoji: "🧭", base: 260, worries: ["이 길이 맞는 걸까", "몇 년 뒤 난 어떻게 될까", "지금 너무 늦은 건 아닐까"] },
-  health: { label: "건강", emoji: "🩺", base: 240, worries: ["이 증상 큰 병이면 어쩌지", "몸이 예전 같지 않아", "검진 결과가 두려워"] },
+  money: {
+    label: "돈",
+    emoji: "💰",
+    base: 300,
+    worries: [
+      "다음 달 카드값 감당될까",
+      "이러다 노후 어쩌지",
+      "통장이 텅 비면 어떡하지",
+      "이 지출을 계속 감당할 수 있을까",
+      "남들보다 뒤처지는 건 아닐까",
+    ],
+  },
+  relationship: {
+    label: "관계",
+    emoji: "🫂",
+    base: 220,
+    worries: [
+      "그 사람이 날 어떻게 볼까",
+      "이 관계가 틀어지면 어쩌지",
+      "내가 말실수한 건 아닐까",
+      "나만 애쓰는 건 아닐까",
+      "미움받으면 어쩌지",
+    ],
+  },
+  future: {
+    label: "미래",
+    emoji: "🧭",
+    base: 260,
+    worries: [
+      "이 길이 맞는 걸까",
+      "몇 년 뒤 난 어떻게 될까",
+      "지금 너무 늦은 건 아닐까",
+      "이러다 아무것도 안 되면 어쩌지",
+      "선택을 후회하게 될까",
+    ],
+  },
+  health: {
+    label: "건강",
+    emoji: "🩺",
+    base: 240,
+    worries: [
+      "이 증상 큰 병이면 어쩌지",
+      "몸이 예전 같지 않아",
+      "검진 결과가 두려워",
+      "이대로 계속 아프면 어쩌지",
+      "내가 나를 못 돌보는 것 같아",
+    ],
+  },
 };
 
-// 은행 직원 7인 (원래 기획, 마스코트 '일호'는 독립 이름 '철벽')
-export type Staff = { key: string; name: string; emoji: string; role: string; line: string };
+// 은행 직원 7인 (캐릭터 이미지 연동)
+export type Staff = {
+  key: string;
+  name: string;
+  emoji: string;
+  img: string;
+  role: string;
+  line: string;
+};
 export const STAFF_FULL: Record<string, Staff> = {
-  manager: { key: "manager", name: "지점장 ‘든든’", emoji: "🧑‍💼", role: "재무 총괄·총평", line: "잔고보다 흐름을 봅시다." },
-  teller: { key: "teller", name: "창구직원 ‘또박’", emoji: "💁", role: "걱정 접수·상환 플랜", line: "이 걱정, 분할 상환 도와드릴게요." },
-  elf: { key: "elf", name: "이자요정 ‘불어’", emoji: "🧚", role: "걱정 증폭(이자)", line: "하루만 더 두면 두 배 돼요, 후후." },
-  savings: { key: "savings", name: "적금통 ‘차곡’", emoji: "🐷", role: "미래 불안 적립", line: "매일 조금씩 쌓이고 있어요." },
-  loan: { key: "loan", name: "대출심사 ‘갚어’", emoji: "📋", role: "마음의 빚 관리", line: "상환 능력을 보겠습니다." },
-  writeoff: { key: "writeoff", name: "부실채권 정리 ‘탕감’", emoji: "🔥", role: "못 갚을 걱정 소각", line: "이건… 탕감 처리하죠." },
-  security: { key: "security", name: "보안요원 ‘철벽’", emoji: "💂", role: "회피 감시", line: "회피는 임시 예치일 뿐이에요." },
+  manager: { key: "manager", name: "지점장 ‘든든’", emoji: "🧑‍💼", img: "/images/staff/manager.png", role: "재무 총괄·총평", line: "잔고보다 흐름을 봅시다." },
+  teller: { key: "teller", name: "창구직원 ‘또박’", emoji: "💁", img: "/images/staff/teller.png", role: "걱정 접수·상환 플랜", line: "이 걱정, 분할 상환 도와드릴게요." },
+  elf: { key: "elf", name: "이자요정 ‘불어’", emoji: "🧚", img: "/images/staff/elf.png", role: "걱정 증폭(이자)", line: "하루만 더 두면 두 배 돼요, 후후." },
+  savings: { key: "savings", name: "적금통 ‘차곡’", emoji: "🐷", img: "/images/staff/jar.png", role: "미래 불안 적립", line: "매일 조금씩 쌓이고 있어요." },
+  loan: { key: "loan", name: "대출심사 ‘갚어’", emoji: "📋", img: "/images/staff/loan.png", role: "마음의 빚 관리", line: "상환 능력을 보겠습니다." },
+  writeoff: { key: "writeoff", name: "부실채권 정리 ‘탕감’", emoji: "🔥", img: "/images/staff/writeoff.png", role: "못 갚을 걱정 소각", line: "이건… 탕감 처리하죠." },
+  security: { key: "security", name: "보안요원 ‘철벽’", emoji: "💂", img: "/images/staff/security.png", role: "회피 감시", line: "회피는 임시 예치일 뿐이에요." },
 };
 
 export type Distortion = "catastrophizing" | "overgeneralization" | "mindreading" | "emotional";
@@ -61,10 +114,18 @@ export type SOption = {
   avoid?: boolean;
   distortion?: Distortion;
   maturity?: string;
+  // 이 답을 고르면 꼬리를 무는 후속 질문이 이어진다
+  followUp?: SQuestion;
 };
-export type SQuestion = { id: string; prompt: string; emoji: string; options: SOption[] };
+export type SQuestion = {
+  id: string;
+  prompt: string;
+  emoji: string;
+  options: SOption[];
+  followUp?: boolean; // 후속(분기) 질문 표시용
+};
 
-// 원래 기획의 상황형 10개 질문 그대로
+// 상황형 질문 12개 (더 다양하고 구체적으로)
 export const SQUESTIONS: SQuestion[] = [
   { id: "top", prompt: "요즘 가장 큰 걱정은 어떤 영역인가요?", emoji: "🏦", options: [
     { label: "💰 재정·경제적 문제", category: "money" },
@@ -90,6 +151,12 @@ export const SQUESTIONS: SQuestion[] = [
     { label: "특별히 반복되진 않는다", interest: 0 },
     { label: "너무 오래돼서 원래 뭐였는지도 모르겠다", interest: 4, distortion: "overgeneralization" },
   ] },
+  { id: "talk", prompt: "이 걱정, 누군가에게 털어놓아 봤나요?", emoji: "🗣️", options: [
+    { label: "여러 번 이야기했다", repay: 1 },
+    { label: "한두 번 꺼내봤다", interest: 0 },
+    { label: "혼자만 안고 있다", interest: 1 },
+    { label: "말할 사람이 없다", interest: 2, distortion: "emotional" },
+  ] },
   { id: "debt", prompt: "누군가에게 갚아야 할 마음의 빚이 있나요?", emoji: "🧾", options: [
     { label: "갚지 못한 마음의 빚이 있다", debt: 2 },
     { label: "조금씩 갚아가는 중이다", debt: 1, repay: 1 },
@@ -97,16 +164,48 @@ export const SQUESTIONS: SQuestion[] = [
     { label: "특별히 없다", debt: 0 },
   ] },
   { id: "prepay", prompt: "아직 일어나지 않은 일을 미리 걱정하는 편인가요?", emoji: "⏭️", options: [
-    { label: "항상 최악을 먼저 상상한다", principal: 2, distortion: "catastrophizing" },
+    {
+      label: "항상 최악을 먼저 상상한다",
+      principal: 2, distortion: "catastrophizing",
+      followUp: {
+        id: "prepay-history", emoji: "📊", followUp: true,
+        prompt: "그 ‘최악’, 지금까지 실제로 몇 번이나 현실이 됐나요?",
+        options: [
+          { label: "거의 없었다", repay: 1 },
+          { label: "가끔 있었다", interest: 1 },
+          { label: "자주 그랬다", interest: 2 },
+          { label: "기억이 잘 안 난다", interest: 1 },
+        ],
+      },
+    },
     { label: "가끔 미리 걱정하는 편이다", principal: 1 },
     { label: "닥쳐야 걱정하는 편이다", principal: 0 },
     { label: "이미 감당할 수 없을 만큼 쌓였다", principal: 3, distortion: "catastrophizing" },
   ] },
   { id: "repayway", prompt: "이 걱정에 평소 어떻게 대처하고 있나요?", emoji: "🛠️", options: [
     { label: "구체적으로 행동해서 해결한다", repay: 2, control: "high" },
-    { label: "생각하지 않으려고 피한다", badloan: 1, avoid: true, control: "low", distortion: "emotional" },
+    {
+      label: "생각하지 않으려고 피한다",
+      badloan: 1, avoid: true, control: "low", distortion: "emotional",
+      followUp: {
+        id: "avoid-effect", emoji: "🔁", followUp: true,
+        prompt: "피하고 나면 잠깐은 낫던가요, 아니면 나중에 더 커지던가요?",
+        options: [
+          { label: "잠깐 낫다가 더 커진다", interest: 2, distortion: "emotional" },
+          { label: "그냥 계속 남아있다", interest: 1 },
+          { label: "가끔은 진짜 괜찮아진다", repay: 1 },
+          { label: "잘 모르겠다", control: "unknown" },
+        ],
+      },
+    },
     { label: "시간이 해결해주길 기다린다", repay: 1, control: "mid" },
     { label: "어떻게 해야 할지 몰라 방치한다", badloan: 1, avoid: true, control: "low" },
+  ] },
+  { id: "body", prompt: "이 걱정이 지금 몸 어디에서 느껴지나요?", emoji: "🫀", options: [
+    { label: "가슴이 답답하거나 두근거린다", interest: 1 },
+    { label: "머리가 무겁고 생각이 멈추질 않는다", interest: 1 },
+    { label: "잠이 잘 안 온다", interest: 2 },
+    { label: "몸으로는 딱히 느껴지지 않는다", interest: 0 },
   ] },
   { id: "time", prompt: "걱정이 가장 심해지는 시간대는 언제인가요?", emoji: "🌙", options: [
     { label: "잠들기 직전, 침대 위에서", interest: 1 },
@@ -115,10 +214,36 @@ export const SQUESTIONS: SQuestion[] = [
     { label: "하루 종일 머릿속에 있다", interest: 3 },
   ] },
   { id: "badloan", prompt: "아무리 해도 해결할 수 없을 것 같은 걱정이 있나요?", emoji: "📕", options: [
-    { label: "해결 불가능해 보이는 게 있다", badloan: 2 },
+    {
+      label: "해결 불가능해 보이는 게 있다",
+      badloan: 2,
+      followUp: {
+        id: "badloan-control", emoji: "🔍", followUp: true,
+        prompt: "그 걱정, 정말 100% 내 힘 밖인가요? 아니면 아주 일부라도 손댈 수 있나요?",
+        options: [
+          { label: "아주 조금은 내가 바꿀 수 있다", control: "mid", repay: 1 },
+          { label: "정말 하나도 못 바꾼다", control: "low", badloan: 1 },
+          { label: "생각해보니 남이 도와줄 수도 있다", control: "mid" },
+          { label: "잘 모르겠다", control: "unknown" },
+        ],
+      },
+    },
     { label: "어렵지만 정리해 나가는 중이다", badloan: 1, repay: 1 },
     { label: "지금은 없다", badloan: 0 },
-    { label: "전부 다 해결 불가능한 것 같다", badloan: 3, distortion: "overgeneralization" },
+    {
+      label: "전부 다 해결 불가능한 것 같다",
+      badloan: 3, distortion: "overgeneralization",
+      followUp: {
+        id: "badloan-exception", emoji: "🕯️", followUp: true,
+        prompt: "정말 ‘전부’가 맞나요? 오늘 그나마 나았던 순간이 하나라도 있었나요?",
+        options: [
+          { label: "그러고 보니… 있었다", repay: 1 },
+          { label: "잘 기억이 안 난다", interest: 1 },
+          { label: "정말 하나도 없었다", interest: 2 },
+          { label: "천천히 찾아볼게요", control: "mid" },
+        ],
+      },
+    },
   ] },
   { id: "maturity", prompt: "이 걱정은 언제쯤 끝날 것 같나요?", emoji: "⏳", options: [
     { label: "며칠 안에 결판날 일이다", maturity: "내일 (단기 예금)", probability: 60 },
@@ -129,6 +254,15 @@ export const SQUESTIONS: SQuestion[] = [
 ];
 
 export type PlanStep = { title: string; detail: string };
+
+// 걱정 나무(Worry Tree) 분류 결과
+export type WorryTree = {
+  kind: "hypothetical" | "actNow" | "schedule";
+  badge: string;
+  title: string;
+  detail: string;
+};
+
 export type StatementResult = {
   category: SCategory; worryText: string;
   balance: number; todayInterest: number; badLoans: number; repaidThisWeek: number;
@@ -138,6 +272,7 @@ export type StatementResult = {
   maturityLabel: string; avoidance: boolean;
   distortion: Distortion; control: Controllability; controlLabel: string;
   plan: PlanStep[]; managerVerdict: string; interestElf: string;
+  tree: WorryTree;
 };
 
 function hash(str: string): number {
@@ -146,7 +281,10 @@ function hash(str: string): number {
   return h;
 }
 
-export function buildStatement(answers: SOption[]): StatementResult {
+export function buildStatement(
+  answers: SOption[],
+  segmentKey?: SegmentKey | null
+): StatementResult {
   let category: SCategory = "future";
   let probability = 50;
   let interestPts = 0, principalPts = 0, debtPts = 0, badloanPts = 0, repayPts = 0;
@@ -176,7 +314,13 @@ export function buildStatement(answers: SOption[]): StatementResult {
 
   const meta = SCATEGORY_META[category];
   const seed = answers.map((a) => a.label).join("|");
-  const worryText = meta.worries[hash(seed + category) % meta.worries.length];
+  // 세그먼트가 있으면 그 직무/생애단계에 맞는 걱정 문구 풀에서 고른다
+  const segPool =
+    segmentKey && SEGMENT_MAP[segmentKey]
+      ? SEGMENT_MAP[segmentKey].worries[category]
+      : null;
+  const pool = segPool && segPool.length ? segPool : meta.worries;
+  const worryText = pool[hash(seed + category) % pool.length];
 
   const principal = meta.base + principalPts * 40;
   const interestAmount = interestPts * 55;
@@ -221,11 +365,41 @@ export function buildStatement(answers: SOption[]): StatementResult {
   ];
   const interestElf = elfLines[hash(seed) % elfLines.length];
 
+  // ── 걱정 나무(Worry Tree) ──
+  // "내가 어떻게 할 수 있는 걱정인가?" → 아니오: 놓아주기 / 예: 지금 실행 or 걱정 시간 예약
+  const controllable = control === "high" || control === "mid";
+  let tree: WorryTree;
+  if (!controllable || probability <= 15) {
+    tree = {
+      kind: "hypothetical",
+      badge: "가정형 걱정",
+      title: "지금은 놓아주는 게 상책 (탕감 대상)",
+      detail:
+        "내가 바꿀 수 없거나 실현확률이 낮은 ‘가정형’ 걱정이에요. 붙들수록 이자만 붙어요. 부실채권으로 분류해 태워 비우고, 그 자리에 다른 일로 주의를 옮겨보세요.",
+    };
+  } else if (control === "high") {
+    tree = {
+      kind: "actNow",
+      badge: "실제형 · 지금 가능",
+      title: "오늘 바로 갚을 수 있는 걱정 (즉시 상환)",
+      detail:
+        "내가 손댈 수 있는 ‘실제형’ 걱정이에요. 걱정 대신 오늘 할 수 있는 딱 한 가지를 정해 지금 실행하세요. 행동이 시작되는 순간 이자가 멈춥니다.",
+    };
+  } else {
+    tree = {
+      kind: "schedule",
+      badge: "실제형 · 나중에",
+      title: "‘걱정 시간’에 예약 (분할 상환)",
+      detail:
+        "당장은 아니지만 언젠가 다룰 수 있는 걱정이에요. 하루 15분 ‘걱정 시간’을 정해 그때만 생각하고, 지금은 예치해 두세요. (근거: 걱정 미루기 · Worry Window 기법)",
+    };
+  }
+
   return {
     category, worryText, balance, todayInterest, badLoans, repaidThisWeek,
     probability, principal, current, multiplier, ruminationCost, gap,
     savingsAmt, loanAmt, badloanAmt, depositAmt, maturityLabel, avoidance,
     distortion, control, controlLabel: CONTROL_LABEL[control],
-    plan, managerVerdict, interestElf,
+    plan, managerVerdict, interestElf, tree,
   };
 }
