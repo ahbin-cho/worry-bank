@@ -608,7 +608,8 @@ function AssetRow({
     <div className="py-1">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-2 py-1.5 text-left"
+        aria-expanded={open}
+        className="group flex w-full items-center justify-between gap-2 rounded-lg py-1.5 text-left transition"
       >
         <span className="flex items-center gap-2 text-gray-700">
           {s ? (
@@ -628,9 +629,25 @@ function AssetRow({
             {v.toLocaleString()}원
           </span>
           <span
-            className={`text-xs text-gray-300 transition-transform ${open ? "rotate-180" : ""}`}
+            aria-hidden
+            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-all ${
+              open
+                ? "rotate-180 border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-[#eadfce] bg-white text-slate-400 group-hover:border-emerald-200 group-hover:text-emerald-600"
+            }`}
           >
-            ⌄
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={3}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
           </span>
         </span>
       </button>
