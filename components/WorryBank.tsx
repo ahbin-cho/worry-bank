@@ -21,7 +21,13 @@ import {
   type Likelihood,
   type StaffKey,
 } from "@/lib/bank";
-import { loadSegment, SEGMENT_MAP } from "@/lib/segments";
+import {
+  loadSegment,
+  saveSegment,
+  SEGMENT_MAP,
+  SEGMENTS,
+  type SegmentKey,
+} from "@/lib/segments";
 
 type Feed =
   | { kind: "user"; id: string; text: string; category: Category }
@@ -58,6 +64,18 @@ export default function WorryBank({
   const [reframeFor, setReframeFor] = useState<string | null>(null);
   const [suggestions, setSuggestions] =
     useState<{ cat: Category; text: string }[]>(SUGGESTIONS);
+  const [segment, setSegment] = useState<SegmentKey | null>(null);
+
+  const pickSegment = (key: SegmentKey) => {
+    setSegment(key);
+    saveSegment(key);
+    setSuggestions(
+      SEGMENT_MAP[key].suggestions.map((s) => ({
+        cat: s.cat as Category,
+        text: s.text,
+      })),
+    );
+  };
 
   const idRef = useRef(0);
   const nid = () => `f${idRef.current++}`;
@@ -74,13 +92,15 @@ export default function WorryBank({
     const w = loadWorries();
     setWorries(w);
     const seg = loadSegment();
-    if (seg && SEGMENT_MAP[seg])
+    if (seg && SEGMENT_MAP[seg]) {
+      setSegment(seg);
       setSuggestions(
         SEGMENT_MAP[seg].suggestions.map((s) => ({
           cat: s.cat as Category,
           text: s.text,
         })),
       );
+    }
     const kept = w.filter((x) => x.status === "kept").length;
     const greet: Feed[] = [
       {
@@ -357,6 +377,27 @@ export default function WorryBank({
 
         {!feed.some((f) => f.kind === "user") && !typing && (
           <div className="ml-11 rounded-xl border border-dashed border-[#d8c7ae] bg-white/70 p-3">
+            <p className="mb-2 text-[12px] font-bold text-gray-500">
+              먼저, 지금 어떤 상황에 가까우세요? <span className="font-medium text-gray-400">(고르면 예시가 맞춰져요)</span>
+            </p>
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              {SEGMENTS.map((sg) => {
+                const on = segment === sg.key;
+                return (
+                  <button
+                    key={sg.key}
+                    onClick={() => pickSegment(sg.key)}
+                    className={`rounded-full px-2.5 py-1 text-[12px] font-semibold transition ${
+                      on
+                        ? "bg-emerald-800 text-white"
+                        : "bg-white text-slate-600 ring-1 ring-[#eadfce] hover:bg-emerald-50"
+                    }`}
+                  >
+                    {sg.emoji} {sg.label}
+                  </button>
+                );
+              })}
+            </div>
             <p className="mb-2 text-[12px] font-bold text-gray-500">
               무슨 말을 할지 막막하면, 이런 걸 눌러서 시작해도 돼요 👇
             </p>
