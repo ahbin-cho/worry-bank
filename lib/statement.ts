@@ -112,6 +112,9 @@ export const COMFORT_LINES = [
   "오늘 아무것도 못 한 날에도, 당신의 가치는 조금도 줄지 않아요.",
   "이 걱정도 언젠가는 ‘그땐 그랬지’ 하고 지나갈 거예요.",
   "혼자 다 짊어지지 않아도 돼요. 걱정은 여기 잠시 맡겨두셔도 괜찮아요.",
+  "지금의 불안은 진짜예요. 다만 느낌이 곧 사실은 아니에요 — 이 감정도 지나갑니다.",
+  "그 마음이 드는 게 당연할 만큼, 오늘 참 많이 애쓰셨어요.",
+  "괜찮아요. 지금 이 무게도 시간이 지나면 조금씩 옅어질 거예요.",
 ];
 
 export type SOption = {
@@ -1483,7 +1486,7 @@ export type StatementResult = {
   maturityLabel: string; avoidance: boolean;
   distortion: Distortion; control: Controllability; controlLabel: string;
   plan: PlanStep[]; managerVerdict: string; interestElf: string;
-  tree: WorryTree;
+  tree: WorryTree; treePlain: string;
   // 한눈에 요약 + 직무 차별화 + 위로
   wastedPct: number; realPct: number; empathy: string; todayAction: string;
   comfort: string;
@@ -1494,6 +1497,69 @@ function hash(str: string): number {
   for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 100000;
   return h;
 }
+
+// 걱정 나무 카피 풀 — 유형별로 여러 변주를 두어 매번 다른 문구가 나오게 한다.
+// (근거: Butler & Hope의 Worry Tree — 가정형은 놓아주고 주의 전환, 실제형은
+//  '누가·무엇을·언제' 행동계획 후 지금 실행 또는 '걱정 시간' 예약)
+const TREE_BANK: Record<
+  WorryTree["kind"],
+  { badge: string; titles: string[]; details: string[]; plains: string[] }
+> = {
+  hypothetical: {
+    badge: "가정형 걱정",
+    titles: [
+      "지금은 놓아주는 게 상책 (탕감 대상)",
+      "붙들기보다 흘려보낼 걱정",
+      "오늘은 내려놔도 되는 걱정",
+    ],
+    details: [
+      "내가 바꿀 수 없거나 실현확률이 낮은 ‘가정형’ 걱정이에요. 걱정 나무(Worry Tree)에선 이런 건 붙잡지 말고 ‘놓아주고 주의를 다른 데로 옮기기’를 권해요. 곱씹을수록 이자만 붙습니다.",
+      "‘일어날지도 모르는 일’이라 지금 손쓸 데가 없는 걱정이에요. 해결하려 애쓰기보다, 관심을 지금 할 수 있는 다른 일로 옮기는 게 정답이에요.",
+      "아무리 곱씹어도 결과가 안 바뀌는 걱정이에요. 오늘은 잠시 내려놓아도 손해가 없어요. 대신 몸을 움직이는 다른 일에 주의를 둬보세요.",
+    ],
+    plains: [
+      "지금은 놓아줘도 되는 걱정",
+      "흘려보내도 되는 걱정",
+      "오늘은 내려놔도 되는 걱정",
+    ],
+  },
+  actNow: {
+    badge: "실제형 · 지금 가능",
+    titles: [
+      "오늘 바로 갚을 수 있는 걱정 (즉시 상환)",
+      "한 걸음이면 줄어드는 걱정",
+      "지금 손댈 수 있는 걱정",
+    ],
+    details: [
+      "내가 손댈 수 있는 ‘실제형’ 걱정이에요. ‘누가·무엇을·언제’ 할지 한 줄 계획을 세워 지금 바로 실행하세요. 행동이 시작되는 순간 이자가 멈춥니다.",
+      "이건 바꿀 수 있는 걱정이에요. 완벽하게 말고 아주 작게 한 걸음만 떼도 마음의 이자가 멎어요. 오늘의 한 가지를 정해보세요.",
+      "통제 가능한 부분이 있는 걱정이에요. 머리로 굴리는 대신 손을 움직이면 걱정이 ‘할 일’로 바뀝니다. 지금 시작할 한 가지를 골라요.",
+    ],
+    plains: [
+      "오늘 바로 해볼 수 있는 걱정",
+      "한 걸음이면 줄어드는 걱정",
+      "지금 손댈 수 있는 걱정",
+    ],
+  },
+  schedule: {
+    badge: "실제형 · 나중에",
+    titles: [
+      "‘걱정 시간’에 예약 (분할 상환)",
+      "지금 말고 정해둔 때에 다룰 걱정",
+      "미뤄뒀다 다뤄도 되는 걱정",
+    ],
+    details: [
+      "언젠가 다룰 수 있지만 지금 당장은 아닌 걱정이에요. 하루 15분 ‘걱정 시간’을 정해 그때만 생각하고, 지금은 예치해 두세요. (걱정 미루기 · Worry Window 기법)",
+      "지금 붙잡고 있어도 결론이 안 나는 걱정이에요. ‘걱정 시간’을 따로 예약해 몰아서 다루면, 나머지 하루가 훨씬 가벼워져요.",
+      "손봐야 하지만 이 순간은 아니에요. 정해둔 시간에만 꺼내 보기로 하고, 지금은 잠시 맡겨두세요.",
+    ],
+    plains: [
+      "나중에 다뤄도 되는 걱정",
+      "정해둔 때에 다룰 걱정",
+      "지금 말고 나중 걱정",
+    ],
+  },
+};
 
 export function buildStatement(
   answers: SOption[],
@@ -1554,68 +1620,96 @@ export function buildStatement(
   const gap = Math.max(0, Math.round((100 - probability) * (interestPts / 12) * 10) / 10);
 
   const dm = DISTORTION_META[distortion];
-  const step1: PlanStep = { title: "① 사고 기록", detail: `자동으로 떠오른 “${worryText}”을 그대로 한 줄 적어보세요. 머릿속에 두면 이자가 붙지만, 종이에 옮기면 이자가 멈춥니다.` };
-  const step2: PlanStep = { title: "② 증거 검토", detail: `이 생각은 ‘${dm.label}’에 가까워요. ${dm.reframe}` };
-  const step3: PlanStep = { title: "③ 대안적 사고", detail: probability >= 100
-    ? "이미 일어난 일이라면 ‘예측’이 아니라 ‘대응’의 영역이에요. “최악은 아니고, 지금 할 수 있는 건 ___ 이다”로 바꿔보세요."
-    : `“최악이 아니라 가장 현실적인 결말은 ___ 이고, 그마저도 확률은 ${probability}%다”로 균형 잡힌 문장을 만들어 보세요.` };
-  let step4: PlanStep;
-  if (control === "high" || control === "mid") step4 = { title: "④ 행동 실험", detail: "통제 가능한 부분이 있으니, 오늘 실제로 바꿀 수 있는 ‘딱 한 가지’를 정해 실행하세요." };
-  else if (control === "low") step4 = { title: "④ 걱정 미루기", detail: "통제 밖의 일은 ‘걱정 시간’ 15분만 정해 그때만 걱정하고, 나머지 시간엔 예치해 두세요." };
-  else step4 = { title: "④ 통제 가능/불가 나누기", detail: "종이에 세로선을 긋고 ‘바꿀 수 있는 것 / 없는 것’으로 나눠, 에너지는 왼쪽 칸에만 쓰세요." };
-  const plan = [step1, step2, step3, step4];
-
-  let managerVerdict: string;
-  if (maturityLabel.startsWith("평생")) managerVerdict = "만기 없는 적금처럼 평생 붓는 걱정이네요. 흐름을 끊는 건 완납이 아니라 ‘자동이체 해지’입니다.";
-  else if (probability >= 100) managerVerdict = "이건 걱정이 아니라 이미 벌어진 ‘사건’이에요. 예측 계좌를 닫고 대응 계좌를 여세요.";
-  else if (probability <= 15) managerVerdict = `실현확률 ${probability}%인데 이자를 ${multiplier}배나 물고 계셨네요. 전형적인 ‘부실 걱정’, 잔고보다 흐름을 보십시오.`;
-  else if (badLoans >= 2) managerVerdict = "부실채권이 쌓였어요. 못 갚을 걱정은 오늘 ‘탕감’으로 넘기고, 갚을 수 있는 것부터 처리합시다.";
-  else managerVerdict = "잔고는 있지만 관리 가능한 수준이에요. 통제 가능한 것부터 분할 상환하면 됩니다.";
-
-  const elfLines = [
-    `원금 ${principal}을 ${multiplier}배로 불렸어요, 후후.`,
-    `하루만 더 두면 또 불어날 텐데… 지금 갚으실래요?`,
-    `이자는 새벽에 제일 잘 불어요. 조심하세요.`,
-  ];
-  const interestElf = elfLines[hash(seed) % elfLines.length];
-
-  // ── 걱정 나무(Worry Tree) ──
-  // "내가 어떻게 할 수 있는 걱정인가?" → 아니오: 놓아주기 / 예: 지금 실행 or 걱정 시간 예약
-  const controllable = control === "high" || control === "mid";
-  let tree: WorryTree;
-  if (!controllable || probability <= 15) {
-    tree = {
-      kind: "hypothetical",
-      badge: "가정형 걱정",
-      title: "지금은 놓아주는 게 상책 (탕감 대상)",
-      detail:
-        "내가 바꿀 수 없거나 실현확률이 낮은 ‘가정형’ 걱정이에요. 붙들수록 이자만 붙어요. 부실채권으로 분류해 태워 비우고, 그 자리에 다른 일로 주의를 옮겨보세요.",
-    };
-  } else if (control === "high") {
-    tree = {
-      kind: "actNow",
-      badge: "실제형 · 지금 가능",
-      title: "오늘 바로 갚을 수 있는 걱정 (즉시 상환)",
-      detail:
-        "내가 손댈 수 있는 ‘실제형’ 걱정이에요. 걱정 대신 오늘 할 수 있는 딱 한 가지를 정해 지금 실행하세요. 행동이 시작되는 순간 이자가 멈춥니다.",
-    };
-  } else {
-    tree = {
-      kind: "schedule",
-      badge: "실제형 · 나중에",
-      title: "‘걱정 시간’에 예약 (분할 상환)",
-      detail:
-        "당장은 아니지만 언젠가 다룰 수 있는 걱정이에요. 하루 15분 ‘걱정 시간’을 정해 그때만 생각하고, 지금은 예치해 두세요. (근거: 걱정 미루기 · Worry Window 기법)",
-    };
-  }
+  const seg = segmentKey && SEGMENT_MAP[segmentKey] ? SEGMENT_MAP[segmentKey] : null;
+  // 페르소나(직무) 어투: "팀을 이끄는 당신" 처럼 자연스럽게 붙는 관형구
+  const who = seg?.blurb ? `${seg.blurb} 당신` : "지금의 당신";
+  // 답변 조합(seed)에 salt를 더해 항목마다 다른 변주를 뽑는다(항목끼리 안 겹치게).
+  const pick = <T,>(arr: readonly T[], salt: string): T =>
+    arr[hash(seed + salt) % arr.length];
 
   // ── 한눈에 요약: '부풀린 헛걱정' 비율 ──
-  // 곱씹은 이자(current-principal)가 지금 잔고에서 차지하는 몫 = 내려놔도 되는 부분.
   const wastedPct = current > 0 ? Math.min(90, Math.round((interestAmount / current) * 100)) : 0;
   const realPct = 100 - wastedPct;
 
+  // ── 4단계 상환 플랜 ──
+  const step1: PlanStep = { title: "① 사고 기록", detail: `자동으로 떠오른 “${worryText}”을 그대로 한 줄 적어보세요. 머릿속에 두면 이자가 붙지만, 종이에 옮기면 이자가 멈춥니다.` };
+  const step2: PlanStep = { title: "② 증거 검토", detail: `이 생각은 ‘${dm.label}’에 가까워요. ${dm.reframe}` };
+  const step3: PlanStep = { title: "③ 대안적 사고", detail: probability >= 100
+    ? pick([
+        "이미 일어난 일이라면 ‘예측’이 아니라 ‘대응’의 영역이에요. “최악은 아니고, 지금 할 수 있는 건 ___ 이다”로 바꿔보세요.",
+        "벌어진 일은 되돌릴 수 없지만 다음 한 수는 내 몫이에요. “그래서 지금 내가 할 수 있는 건 ___ 이다”로 문장을 바꿔보세요.",
+      ], "s3")
+    : pick([
+        `“최악이 아니라 가장 현실적인 결말은 ___ 이고, 그마저도 확률은 ${probability}%다”로 균형 잡힌 문장을 만들어 보세요.`,
+        `최악·최선·가장 현실적인 결말을 각각 한 줄씩 적어보세요. 확률 ${probability}%의 ‘가장 현실적인’ 쪽에 대비하면 충분해요.`,
+      ], "s3") };
+  let step4: PlanStep;
+  if (control === "high" || control === "mid") step4 = { title: "④ 행동 실험", detail: pick([
+    "통제 가능한 부분이 있으니, 오늘 실제로 바꿀 수 있는 ‘딱 한 가지’를 정해 실행하세요.",
+    "걱정을 ‘누가·무엇을·언제’ 할지가 담긴 한 문장으로 바꿔보세요. 계획이 서면 걱정은 ‘할 일’이 됩니다.",
+    "완벽하게 말고 아주 작게 한 걸음만 떼보세요. 행동이 시작되는 순간 곱씹기가 멈춰요.",
+  ], "s4") };
+  else if (control === "low") step4 = { title: "④ 걱정 미루기", detail: pick([
+    "통제 밖의 일은 ‘걱정 시간’ 15분만 정해 그때만 걱정하고, 나머지 시간엔 예치해 두세요.",
+    "바꿀 수 없는 일이라면 하루 한 번 정해둔 때에만 만나기로 하고, 지금은 다른 일로 주의를 옮겨보세요.",
+  ], "s4") };
+  else step4 = { title: "④ 통제 가능/불가 나누기", detail: pick([
+    "종이에 세로선을 긋고 ‘바꿀 수 있는 것 / 없는 것’으로 나눠, 에너지는 왼쪽 칸에만 쓰세요.",
+    "이 걱정을 ‘내 몫’과 ‘내 몫이 아닌 것’으로 갈라보세요. 오늘은 왼쪽 하나만 챙기면 충분해요.",
+  ], "s4") };
+  const plan = [step1, step2, step3, step4];
+
+  // ── 지점장 총평(변주 + 일부 페르소나) ──
+  let managerVerdict: string;
+  if (maturityLabel.startsWith("평생")) managerVerdict = pick([
+    "만기 없는 적금처럼 평생 붓는 걱정이네요. 흐름을 끊는 건 완납이 아니라 ‘자동이체 해지’입니다.",
+    "이건 다 갚아 끝낼 종류가 아니에요. 매일 자동으로 빠져나가던 마음을 오늘 ‘해지’하는 게 먼저예요.",
+    `${who}에게 이건 완납이 목표가 아니에요. 평생 붓느라 지친 마음부터 잠시 멈춰 세워봅시다.`,
+  ], "mv");
+  else if (probability >= 100) managerVerdict = pick([
+    "이건 걱정이 아니라 이미 벌어진 ‘사건’이에요. 예측 계좌를 닫고 대응 계좌를 여세요.",
+    "이미 일어난 일은 예측할 게 없어요. ‘그래서 지금 뭘 할까’ 하나로만 초점을 옮기면 됩니다.",
+    "예측의 시간은 끝났고 이제 대응의 시간이에요. 바꿀 수 없는 과거 말고 오늘 둘 수 있는 한 수를 찾읍시다.",
+  ], "mv");
+  else if (probability <= 15) managerVerdict = pick([
+    `실현확률 ${probability}%인데 이자를 ${multiplier}배나 물고 계셨네요. 전형적인 ‘부실 걱정’, 잔고보다 흐름을 보십시오.`,
+    `일어날 확률은 ${probability}%뿐인데 마음은 ${multiplier}배로 부풀었어요. 대부분 곱씹어 만든 헛이자예요.`,
+    `${probability}% 확률에 이만큼 마음 쓰는 건 손해 큰 투자예요. 오늘은 이 계좌를 조금 비워도 됩니다.`,
+  ], "mv");
+  else if (badLoans >= 2) managerVerdict = pick([
+    "부실채권이 쌓였어요. 못 갚을 걱정은 오늘 ‘탕감’으로 넘기고, 갚을 수 있는 것부터 처리합시다.",
+    "회수 안 되는 걱정이 여럿이네요. 붙들수록 손해라 탕감하고, 손댈 수 있는 것 하나에 집중해요.",
+    "통제 밖 걱정까지 다 떠안고 계셨어요. 못 갚을 건 태워 비우고, 갚을 수 있는 것부터 나눠 갚읍시다.",
+  ], "mv");
+  else managerVerdict = pick([
+    "잔고는 있지만 관리 가능한 수준이에요. 통제 가능한 것부터 분할 상환하면 됩니다.",
+    "감당 못 할 잔고는 아니에요. 큰 걱정 하나를 오늘 할 만한 크기로 쪼개 갚아나가면 돼요.",
+    `${who}, 지금 잔고는 충분히 다룰 만해요. 조급하게 완납하려 말고 오늘 몫만 갚으면 됩니다.`,
+  ], "mv");
+
+  // ── 이자요정 ──
+  const interestElf = pick([
+    `원금 ${principal}을 ${multiplier}배로 불렸어요, 후후.`,
+    `하루만 더 두면 또 불어날 텐데… 지금 갚으실래요?`,
+    `이자는 새벽에 제일 잘 불어요. 조심하세요.`,
+    `이 잔고의 ${wastedPct}%는 제가 붙인 이자예요. 실은 그만큼 안 커도 됐답니다.`,
+    `곱씹을수록 제 배가 불러요. 오늘은 저를 좀 굶겨주실래요?`,
+  ], "elf");
+
+  // ── 걱정 나무(Worry Tree) ──
+  const controllable = control === "high" || control === "mid";
+  const treeKind: WorryTree["kind"] =
+    !controllable || probability <= 15 ? "hypothetical" : control === "high" ? "actNow" : "schedule";
+  const tb = TREE_BANK[treeKind];
+  const tree: WorryTree = {
+    kind: treeKind,
+    badge: tb.badge,
+    title: pick(tb.titles, "treeT"),
+    detail: pick(tb.details, "treeD"),
+  };
+  const treePlain = pick(tb.plains, "treeP");
+
   // ── 직무 차별화: 공감 한 줄 + 걱정나무 종류별 '오늘 딱 하나' 행동 ──
-  const seg = segmentKey && SEGMENT_MAP[segmentKey] ? SEGMENT_MAP[segmentKey] : null;
   const genericAction: Record<WorryTree["kind"], string> = {
     actNow: "오늘 바꿀 수 있는 딱 한 가지를 정해 지금 실행하기",
     schedule: "하루 15분 ‘걱정 시간’을 정해 그때만 떠올리기",
@@ -1623,14 +1717,14 @@ export function buildStatement(
   };
   const empathy = seg?.empathy ?? "지금 이 걱정을 들여다보는 것만으로도 이미 한 걸음이에요.";
   const todayAction = seg?.actions[tree.kind] ?? genericAction[tree.kind];
-  const comfort = COMFORT_LINES[hash(seed + "comfort") % COMFORT_LINES.length];
+  const comfort = pick(COMFORT_LINES, "comfort");
 
   return {
     category, worryText, balance, todayInterest, badLoans, repaidThisWeek,
     probability, principal, current, multiplier, ruminationCost, gap,
     savingsAmt, loanAmt, badloanAmt, depositAmt, maturityLabel, avoidance,
     distortion, control, controlLabel: CONTROL_LABEL[control],
-    plan, managerVerdict, interestElf, tree,
+    plan, managerVerdict, interestElf, tree, treePlain,
     wastedPct, realPct, empathy, todayAction, comfort,
   };
 }

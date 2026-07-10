@@ -53,13 +53,6 @@ const TREE_STYLE: Record<string, { bg: string; text: string; chip: string }> = {
   },
 };
 
-// 걱정 나무 종류를 은행 용어 없이 평이한 한 줄로
-const TREE_PLAIN: Record<string, string> = {
-  hypothetical: "지금은 놓아줘도 되는 걱정",
-  actNow: "오늘 바로 해볼 수 있는 걱정",
-  schedule: "나중에 다뤄도 되는 걱정",
-};
-
 export default function WorryStatement({
   onResolve,
 }: {
@@ -305,7 +298,7 @@ export default function WorryStatement({
             </p>
             <p className="mt-3 text-[17px] font-extrabold leading-snug text-slate-900">
               이 걱정은{" "}
-              <span className={ts.text}>{TREE_PLAIN[result.tree.kind]}</span>
+              <span className={ts.text}>{result.treePlain}</span>
               이에요.
             </p>
 
