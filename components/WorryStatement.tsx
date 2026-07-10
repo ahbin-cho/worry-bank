@@ -131,7 +131,7 @@ export default function WorryStatement({
   if (phase === "intro") {
     return (
       <div className="flex flex-1 flex-col">
-        <div className="animate-fade-in-up rounded-[16px] bg-[#fffaf2] p-4 ring-1 ring-stone-900/10 ">
+        <div className="animate-fade-in-up rounded-[16px] bg-[#fffaf2] p-3 ring-1 ring-stone-900/10 ">
           <div className="mx-auto mb-2 h-16 w-16">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -140,7 +140,7 @@ export default function WorryStatement({
               className="h-full w-full object-contain"
             />
           </div>
-          <h2 className="text-balance break-keep text-center text-xl font-normal leading-snug text-slate-950 [font-family:var(--font-logo)]">
+          <h2 className="text-balance break-keep text-center text-xl font-bold leading-snug tracking-[-0.02em] text-slate-950">
             먼저, 지금 당신은 어떤 상황에 가까운가요?
           </h2>
           <p className="mt-2 text-center text-[13px] leading-relaxed text-slate-500">
@@ -196,7 +196,7 @@ export default function WorryStatement({
     const progress = Math.round((step / flow.length) * 100);
     return (
       <div className="flex flex-1 flex-col">
-        <div className="animate-fade-in-up rounded-[16px] bg-[#fffaf2] p-4 ring-1 ring-stone-900/10 ">
+        <div className="animate-fade-in-up rounded-[16px] bg-[#fffaf2] p-3 ring-1 ring-stone-900/10 ">
           <div className="mb-6">
             <div className="mb-2 flex items-center justify-between text-sm font-semibold text-emerald-800">
               <span>
@@ -216,7 +216,7 @@ export default function WorryStatement({
               ↳ 방금 답에 이어서
             </p>
           )}
-          <h2 className="text-xl font-normal leading-snug text-slate-950 [font-family:var(--font-logo)] sm:text-2xl">
+          <h2 className="text-xl font-bold leading-snug tracking-[-0.02em] text-slate-950 sm:text-2xl">
             <span className="mr-2">{q.emoji}</span>
             {q.prompt}
           </h2>
@@ -296,7 +296,7 @@ export default function WorryStatement({
 
         <div className="space-y-5 p-3">
           {/* 한눈에 → 오늘 할 일 (은행 용어 없이 평이하게) */}
-          <div className="rounded-[12px] border border-emerald-200 bg-white p-5 shadow-sm">
+          <div className="rounded-[12px] border border-emerald-200 bg-white p-3 shadow-sm">
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-700">
               한눈에
             </p>
@@ -341,7 +341,7 @@ export default function WorryStatement({
           </div>
 
           {/* 위로 한마디 — 진단보다 먼저, 위안부터 */}
-          <div className="flex items-start gap-3 rounded-[12px] bg-gradient-to-br from-[#fff8ec] to-emerald-50/70 p-5 ring-1 ring-[#eadfce]">
+          <div className="flex items-start gap-3 rounded-[12px] bg-gradient-to-br from-[#fff8ec] to-emerald-50/70 p-3 ring-1 ring-[#eadfce]">
             <StaffImg s={STAFF_FULL.teller} size={40} />
             <div>
               <h3 className="text-sm font-extrabold text-emerald-900">
@@ -353,7 +353,7 @@ export default function WorryStatement({
             </div>
           </div>
 
-          <div className="rounded-[12px] bg-[#fff8ec] p-4 ring-1 ring-[#eadfce]">
+          <div className="rounded-[12px] bg-[#fff8ec] p-3 ring-1 ring-[#eadfce]">
             <p className="text-[13px] font-extrabold text-emerald-900">
               🧾 이 명세서, 이렇게 읽어요
             </p>
@@ -363,16 +363,15 @@ export default function WorryStatement({
               비춰드려요.
             </p>
             <p className="mt-1.5 text-[13.5px] leading-relaxed text-slate-600">
-              그중{" "}
-              <b className="font-semibold text-slate-800">‘곱씹은 이자’</b>는
-              걱정해도 달라지지 않는{" "}
+              그중 <b className="font-semibold text-slate-800">‘곱씹은 이자’</b>
+              는 걱정해도 달라지지 않는{" "}
               <b className="font-semibold text-rose-500">헛걱정</b>이라, 그냥
               내려놓아도 되는 부분이에요.
             </p>
           </div>
 
           {/* 최고 이자 걱정 */}
-          <div className="rounded-[12px] border border-[#eadfce] bg-[#fffdf8] p-5">
+          <div className="rounded-[12px] border border-[#eadfce] bg-[#fffdf8] p-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-extrabold text-gray-800">
                 🥇 최고 이자 걱정
@@ -409,7 +408,7 @@ export default function WorryStatement({
 
           {/* 걱정 나무 (Worry Tree) */}
           <div
-            className={`rounded-[12px] bg-gradient-to-br ${ts.bg} p-5 ring-1 ring-black/5`}
+            className={`rounded-[12px] bg-gradient-to-br ${ts.bg} p-3 ring-1 ring-black/5`}
           >
             <div className="flex items-center gap-2">
               <span className="text-lg">🌳</span>
@@ -431,7 +430,7 @@ export default function WorryStatement({
           </div>
 
           {/* 걱정 자산 분류 (각 줄 탭하면 이유 펼침) */}
-          <div className="rounded-[12px] border border-[#eadfce] bg-[#fffdf8] p-5 shadow-sm">
+          <div className="rounded-[12px] border border-[#eadfce] bg-[#fffdf8] p-3 shadow-sm">
             <div className="mb-1 flex items-center justify-between">
               <h3 className="text-sm font-extrabold text-gray-800">
                 🗂️ 걱정 자산 분류
@@ -498,7 +497,7 @@ export default function WorryStatement({
             </div>
           )}
 
-          <div className="rounded-[12px] border border-amber-200 bg-amber-50 p-5">
+          <div className="rounded-[12px] border border-amber-200 bg-amber-50 p-3">
             <h3 className="text-sm font-extrabold text-amber-800">
               🔎 사고 패턴 진단 · {DISTORTION_META[result.distortion].label}
             </h3>
@@ -510,7 +509,7 @@ export default function WorryStatement({
             </p>
           </div>
 
-          <div className="flex gap-3 rounded-[12px] bg-gradient-to-br from-emerald-50 to-amber-50 p-5 ring-1 ring-black/5">
+          <div className="flex gap-3 rounded-[12px] bg-gradient-to-br from-emerald-50 to-amber-50 p-3 ring-1 ring-black/5">
             <StaffImg s={STAFF_FULL.manager} size={40} />
             <div>
               <h3 className="text-sm font-extrabold text-emerald-900">
@@ -545,7 +544,7 @@ export default function WorryStatement({
           </div>
 
           {/* 진단 → 해소 (유동적 전환) */}
-          <div className="rounded-[12px] bg-gradient-to-br from-rose-50 to-amber-50 p-5 text-center ring-1 ring-black/5">
+          <div className="rounded-[12px] bg-gradient-to-br from-rose-50 to-amber-50 p-3 text-center ring-1 ring-black/5">
             <p className="text-sm font-extrabold text-gray-800">
               💡 이제 이 걱정, 바로 처리할까요?
             </p>
