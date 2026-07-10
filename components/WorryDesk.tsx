@@ -235,6 +235,9 @@ export default function WorryDesk({
 
         {screen === "c-mood" && (
           <>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700/80">
+              위로 문진 · 1 / 4
+            </p>
             <Bubble k="teller">
               위로가 필요하셨군요. 맞는 말을 건네드리려고 두 가지만 여쭤볼게요.
               <br />
@@ -254,6 +257,9 @@ export default function WorryDesk({
 
         {screen === "c-area" && (
           <>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700/80">
+              위로 문진 · 2 / 4
+            </p>
             <Bubble k="teller">그 마음, 무엇에 관한 것에 가까운가요?</Bubble>
             <Options
               items={[
@@ -275,6 +281,9 @@ export default function WorryDesk({
 
         {screen === "c-dur" && (
           <>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700/80">
+              위로 문진 · 3 / 4
+            </p>
             <Bubble k="teller">그 마음, 얼마나 되셨어요?</Bubble>
             <Options
               items={[
@@ -293,6 +302,9 @@ export default function WorryDesk({
 
         {screen === "c-need" && (
           <>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700/80">
+              위로 문진 · 4 / 4
+            </p>
             <Bubble k="teller">
               마지막이에요. 지금 가장 듣고 싶은 말은 무엇인가요?
             </Bubble>

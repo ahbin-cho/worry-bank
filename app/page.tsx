@@ -14,7 +14,7 @@ export default function Page() {
               <span className="text-emerald-900">은행</span>
             </h1>
           </div>
-          <div className="h-16 w-fit overflow-visible">
+          <div className="h-16 w-fit overflow-visible mix-blend-darken">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/images/worry-bank-characters-header.png"

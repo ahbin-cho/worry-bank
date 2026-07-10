@@ -304,7 +304,9 @@ export default function WorryStatement({
               {result.empathy}
             </p>
             <p className="mt-3 text-[17px] font-extrabold leading-snug text-slate-900">
-              이 걱정은 <span className={ts.text}>{TREE_PLAIN[result.tree.kind]}</span>이에요.
+              이 걱정은{" "}
+              <span className={ts.text}>{TREE_PLAIN[result.tree.kind]}</span>
+              이에요.
             </p>
 
             <div className="mt-4">
@@ -323,12 +325,15 @@ export default function WorryStatement({
                 />
               </div>
               <p className="mt-1.5 text-[11px] leading-relaxed text-slate-400">
-                ‘부풀린 헛걱정’은 곱씹어서 커진 부분이라, 내려놓아도 손해가 없어요.
+                ‘부풀린 헛걱정’은 곱씹어서 커진 부분이라, 내려놓아도 손해가
+                없어요.
               </p>
             </div>
 
             <div className="mt-4 rounded-[10px] bg-emerald-50 p-3.5">
-              <p className="text-[12px] font-bold text-emerald-800">👉 오늘 딱 하나</p>
+              <p className="text-[12px] font-bold text-emerald-800">
+                👉 오늘 딱 하나
+              </p>
               <p className="mt-1 text-[15px] font-bold leading-snug text-slate-900">
                 {result.todayAction}
               </p>
@@ -348,10 +353,22 @@ export default function WorryStatement({
             </div>
           </div>
 
-          <div className="rounded-[12px] bg-[#fff8ec] p-4 text-[13px] leading-relaxed text-slate-700 ring-1 ring-[#eadfce]">
-            🧾 이 명세서는 <b>지금 걱정에 쏟고 있는 마음</b>을 잔고처럼 비춘
-            거울이에요. 그중 <b>‘곱씹은 이자’</b>는 걱정해봐야 달라지지 않는{" "}
-            <b>헛걱정</b>이라 그냥 내려놓아도 되는 부분이에요.
+          <div className="rounded-[12px] bg-[#fff8ec] p-4 ring-1 ring-[#eadfce]">
+            <p className="text-[13px] font-extrabold text-emerald-900">
+              🧾 이 명세서, 이렇게 읽어요
+            </p>
+            <p className="mt-2 text-[13.5px] leading-relaxed text-slate-600">
+              지금 걱정에 쏟고 있는 마음을{" "}
+              <b className="font-semibold text-slate-800">은행 잔고</b>처럼
+              비춰드려요.
+            </p>
+            <p className="mt-1.5 text-[13.5px] leading-relaxed text-slate-600">
+              그중{" "}
+              <b className="font-semibold text-slate-800">‘곱씹은 이자’</b>는
+              걱정해도 달라지지 않는{" "}
+              <b className="font-semibold text-rose-500">헛걱정</b>이라, 그냥
+              내려놓아도 되는 부분이에요.
+            </p>
           </div>
 
           {/* 최고 이자 걱정 */}
@@ -547,7 +564,7 @@ export default function WorryStatement({
                 </span>
               </div>
             ) : (
-              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <button
                   onClick={doBurn}
                   className="rounded-[12px] bg-rose-500 px-4 py-3 text-sm font-bold text-white shadow-md transition hover:bg-rose-600 active:scale-95"
@@ -560,14 +577,14 @@ export default function WorryStatement({
                 >
                   🏦 금고에 맡기기
                 </button>
-                {onResolve && (
+                {/* {onResolve && (
                   <button
                     onClick={() => onResolve(result.worryText)}
                     className="rounded-[12px] bg-slate-800 px-4 py-3 text-sm font-bold text-white shadow-md transition hover:bg-slate-900 active:scale-95"
                   >
                     💬 창구에서 이어 말하기
                   </button>
-                )}
+                )} */}
               </div>
             )}
           </div>
